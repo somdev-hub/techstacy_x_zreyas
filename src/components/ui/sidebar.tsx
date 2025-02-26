@@ -158,6 +158,7 @@ export const MobileSidebar = ({
 export const SidebarLink = ({
   link,
   className,
+
   ...props
 }: {
   link: Links;

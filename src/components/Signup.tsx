@@ -6,12 +6,19 @@ import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useModal } from "@/context/ModalContext";
 
 export function Signup() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const { isOpen, closeModal } = useModal();
+
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting }
+    formState: { errors }
   } = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -23,11 +30,15 @@ export function Signup() {
   });
 
   const onSubmit = async (data: SignupInput) => {
+    setIsLoading(true);
     try {
-      const response = await fetch("/api/users", {
+      const response = await fetch("/api/signup", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data),
+        credentials: "include"
       });
 
       const result = await response.json();
@@ -43,14 +54,20 @@ export function Signup() {
         } else {
           toast.error(result.error || "Something went wrong");
         }
+        setIsLoading(false);
         return;
       }
 
       toast.success("Signup successful! Welcome aboard!");
-      // Handle successful signup (e.g., redirect)
+      if (isOpen) {
+        closeModal();
+      }
+      // Redirect to dashboard
+      router.push("/dashboard/home");
     } catch (error) {
       console.error("Signup error:", error);
       toast.error("Failed to create account. Please try again.");
+      setIsLoading(false);
     }
   };
 
@@ -186,9 +203,9 @@ export function Signup() {
         <button
           className="bg-gradient-to-br relative group/btn from-zinc-900 to-zinc-900 block bg-zinc-800 w-full text-white rounded-md h-10 font-medium shadow-[0px_1px_0px_0px_var(--zinc-800)_inset,0px_-1px_0px_0px_var(--zinc-800)_inset]"
           type="submit"
-          disabled={isSubmitting}
+          disabled={isLoading}
         >
-          {isSubmitting ? "Signing up..." : "Sign up"} &rarr;
+          {isLoading ? "Signing up..." : "Sign up"} &rarr;
           <BottomGradient />
         </button>
       </form>

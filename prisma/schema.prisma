@@ -21,14 +21,25 @@ enum Year {
 }
 
 model User {
-  id                 Int     @id @default(autoincrement())
+  id                 Int            @id @default(autoincrement())
   name               String
-  email              String  @unique
-  phone              String  @unique
-  college            String  @default("Silicon Institute of Technology, Sambalpur")
-  sic                String  @unique
+  email              String         @unique
+  phone              String         @unique
+  college            String         @default("Silicon Institute of Technology, Sambalpur")
+  sic                String         @unique
   year               Year
   imageUrl           String?
   password           String
-  eventParticipation Int     @default(0)
+  eventParticipation Int            @default(0)
+  refreshTokens      RefreshToken[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }

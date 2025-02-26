@@ -121,7 +121,7 @@ export default function Home() {
   return (
     <>
     <Navbar />
-    <div className="flex flex-col items-center justify-between overflow-x-hidden pb-24">
+    <div className="flex flex-col items-center justify-between overflow-x-hidden pb-24 ">
       {/* <div className="mt-8"></div> */}
       <LampContainer>
         <motion.h1

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
   FaTimes,
@@ -37,6 +37,11 @@ const UserProfileModal = ({
   const [userInfo, setUserInfo] = useState(initialUserInfo);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Update local state when props change
+  useEffect(() => {
+    setUserInfo(initialUserInfo);
+  }, [initialUserInfo]);
 
   if (!isOpen) return null;
 
@@ -77,13 +82,36 @@ const UserProfileModal = ({
     }
   };
 
-  const handleSaveChanges = () => {
-    // Here you would typically send the updated data to your backend
-    console.log("Saving user data:", userInfo);
-    console.log("New profile image:", imagePreview);
+  const handleSaveChanges = async () => {
+    try {
+      // Only send the update if we have a userId
+      const response = await fetch(`/api/user/update`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: userInfo.name,
+          email: userInfo.email,
+          phone: userInfo.phone,
+          sic: userInfo.sic,
+          year: userInfo.year
+          // Add profile image update logic if needed
+        }),
+        credentials: "include"
+      });
 
-    // For demo purposes, we're just closing edit mode
-    setIsEditing(false);
+      if (!response.ok) {
+        throw new Error("Failed to update profile");
+      }
+
+      // Update was successful
+      setIsEditing(false);
+      // You might want to trigger a refresh of the parent component data
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert("Failed to update profile. Please try again.");
+    }
   };
 
   return (
@@ -142,7 +170,11 @@ const UserProfileModal = ({
               onClick={handleImageClick}
             >
               <Image
-                src={imagePreview || userInfo.imageUrl}
+                src={
+                  imagePreview ||
+                  userInfo.imageUrl ||
+                  "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541"
+                }
                 alt="Profile"
                 fill
                 className="rounded-full object-cover border-2 border-blue-500"
@@ -167,12 +199,12 @@ const UserProfileModal = ({
               <input
                 type="text"
                 name="name"
-                value={userInfo.name}
+                value={userInfo?.name || ""}
                 onChange={handleInputChange}
                 className="text-xl font-bold bg-neutral-700 bg-opacity-40 rounded px-3 py-1 text-center"
               />
             ) : (
-              <h3 className="text-xl font-bold">{userInfo.name}</h3>
+              <h3 className="text-xl font-bold">{userInfo?.name || "User"}</h3>
             )}
           </div>
 
@@ -185,12 +217,12 @@ const UserProfileModal = ({
                   <input
                     type="email"
                     name="email"
-                    value={userInfo.email}
+                    value={userInfo?.email || ""}
                     onChange={handleInputChange}
                     className="w-full bg-neutral-600 rounded px-2 py-1"
                   />
                 ) : (
-                  <p>{userInfo.email}</p>
+                  <p>{userInfo?.email || "No email provided"}</p>
                 )}
               </div>
             </div>
@@ -203,12 +235,12 @@ const UserProfileModal = ({
                   <input
                     type="tel"
                     name="phone"
-                    value={userInfo.phone}
+                    value={userInfo?.phone || ""}
                     onChange={handleInputChange}
                     className="w-full bg-neutral-600 rounded px-2 py-1"
                   />
                 ) : (
-                  <p>{userInfo.phone}</p>
+                  <p>{userInfo?.phone || "No phone provided"}</p>
                 )}
               </div>
             </div>
@@ -217,7 +249,7 @@ const UserProfileModal = ({
               <FaGraduationCap className="text-blue-400 text-lg" />
               <div className="w-full">
                 <p className="text-sm text-neutral-400">College</p>
-                <p>{userInfo.college}</p>
+                <p>{userInfo?.college || "No college information"}</p>
                 {isEditing && (
                   <p className="text-xs text-neutral-400 mt-1">
                     (College information cannot be changed)
@@ -235,12 +267,12 @@ const UserProfileModal = ({
                     <input
                       type="text"
                       name="sic"
-                      value={userInfo.sic}
+                      value={userInfo?.sic || ""}
                       onChange={handleInputChange}
                       className="w-full bg-neutral-600 rounded px-2 py-1"
                     />
                   ) : (
-                    <p>{userInfo.sic}</p>
+                    <p>{userInfo?.sic || "No SIC provided"}</p>
                   )}
                 </div>
               </div>
@@ -251,17 +283,18 @@ const UserProfileModal = ({
                   {isEditing ? (
                     <select
                       name="year"
-                      value={userInfo.year}
+                      value={userInfo?.year || ""}
                       onChange={handleInputChange}
                       className="w-full bg-neutral-600 rounded px-2 py-1"
                     >
+                      <option value="">Select year</option>
                       <option value="1st year">1st year</option>
                       <option value="2nd year">2nd year</option>
                       <option value="3rd year">3rd year</option>
                       <option value="4th year">4th year</option>
                     </select>
                   ) : (
-                    <p>{userInfo.year}</p>
+                    <p>{userInfo?.year || "Not specified"}</p>
                   )}
                 </div>
               </div>
@@ -277,13 +310,13 @@ const UserProfileModal = ({
               </h4>
               <p className="mt-2">
                 Registered for{" "}
-                <span className="font-bold">{userInfo.eventParticipation}</span>{" "}
+                <span className="font-bold">
+                  {userInfo?.eventParticipation || 0}
+                </span>{" "}
                 events
               </p>
             </div>
           )}
-
-          {/* Remove the buttons from the bottom since they're now in the header */}
         </div>
       </div>
     </>

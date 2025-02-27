@@ -120,24 +120,24 @@ const UserProfileModal = ({
         className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40"
         onClick={isEditing ? undefined : onClose}
       />
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[30rem] bg-neutral-800 rounded-xl shadow-lg z-50 overflow-hidden">
-        <div className="p-4 border-b border-neutral-700 flex justify-between items-center">
-          <h2 className="text-xl font-bold">
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[95%] sm:w-[80%] md:w-[35rem] bg-neutral-800 rounded-xl shadow-lg z-50 overflow-hidden">
+        <div className="p-3 sm:p-4 border-b border-neutral-700 flex justify-between items-center">
+          <h2 className="text-lg sm:text-xl font-bold">
             {isEditing ? "Edit Profile" : "User Profile"}
           </h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {!isEditing ? (
               <>
                 <button
                   onClick={handleEditToggle}
-                  className="hover:bg-neutral-700 p-2 rounded-full flex items-center gap-1 text-blue-400 hover:text-blue-300"
+                  className="hover:bg-neutral-700 p-1.5 sm:p-2 rounded-full flex items-center gap-1 text-blue-400 hover:text-blue-300"
                 >
                   <FaEdit />
-                  <span className="text-sm">Edit</span>
+                  <span className="hidden sm:inline text-sm">Edit</span>
                 </button>
                 <button
                   onClick={onClose}
-                  className="hover:bg-neutral-700 p-2 rounded-full"
+                  className="hover:bg-neutral-700 p-1.5 sm:p-2 rounded-full"
                 >
                   <FaTimes />
                 </button>
@@ -146,22 +146,24 @@ const UserProfileModal = ({
               <>
                 <button
                   onClick={handleSaveChanges}
-                  className="bg-green-600 hover:bg-green-700 text-white py-1 px-3 rounded-lg transition-colors flex items-center gap-1 text-sm"
+                  className="bg-green-600 hover:bg-green-700 text-white py-1 px-2 sm:px-3 rounded-lg transition-colors flex items-center gap-1 text-sm"
                 >
-                  <FaCheck /> Save
+                  <FaCheck />
+                  <span className="hidden sm:inline">Save</span>
                 </button>
                 <button
                   onClick={handleEditToggle}
-                  className="bg-neutral-600 hover:bg-neutral-700 text-white py-1 px-3 rounded-lg transition-colors flex items-center gap-1 text-sm"
+                  className="bg-neutral-600 hover:bg-neutral-700 text-white py-1 px-2 sm:px-3 rounded-lg transition-colors flex items-center gap-1 text-sm"
                 >
-                  <FaCancel /> Cancel
+                  <FaCancel />
+                  <span className="hidden sm:inline">Cancel</span>
                 </button>
               </>
             )}
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="flex flex-col items-center mb-6">
             <div
               className={`relative w-24 h-24 mb-3 ${
@@ -208,7 +210,7 @@ const UserProfileModal = ({
             )}
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-neutral-700 bg-opacity-40">
               <FaEnvelope className="text-blue-400 text-lg" />
               <div className="w-full">
@@ -258,7 +260,7 @@ const UserProfileModal = ({
               </div>
             </div>
 
-            <div className="flex gap-4 w-full">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full">
               <div className="flex items-center gap-3 p-3 rounded-lg bg-neutral-700 bg-opacity-40 flex-1">
                 <FaIdCard className="text-blue-400 text-lg" />
                 <div className="w-full">
@@ -303,7 +305,7 @@ const UserProfileModal = ({
 
           {/* Only show event participation when not in edit mode */}
           {!isEditing && (
-            <div className="mt-6 p-4 bg-blue-500 bg-opacity-20 rounded-lg">
+            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-500 bg-opacity-20 rounded-lg">
               <h4 className="font-semibold flex items-center gap-2">
                 <FaUser className="text-blue-400" />
                 Event Participation

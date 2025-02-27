@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
@@ -20,26 +17,89 @@ enum Year {
   FOURTH_YEAR
 }
 
+enum Events {
+  TECH_ROADIES
+  NON_TECH_ROADIES
+  DEBUG
+  QUIZMANIA
+  CODE_RELAY
+  PANCHAYAT
+  SPELL_BEE
+  ROBO_RACE
+  ROBO_WAR
+  TRESURE_HUNT
+  GULLEY_CRICKET
+  DUNK_THE_BALL
+  DART
+  PING_PONG
+  FOOTSOL
+  SOLO_DANCE
+  DUO_DANCE
+  GROUP_DANCE
+  SOLO_SINGING
+  DUO_SINGING
+  GROUP_SINGING
+  SKIT
+
+}
+
+enum ParticipationType {
+  SOLO
+  DUO
+  TRIO
+  QUAD
+  QUINTET
+  GROUP
+}
+
+enum EventType {
+  TECHNICAL
+  NON_TECHNICAL
+  CULTURAL
+  SPORTS
+}
+
 model User {
-  id                 Int            @id @default(autoincrement())
+  id                 Int                @id @default(autoincrement())
   name               String
-  email              String         @unique
-  phone              String         @unique
-  college            String         @default("Silicon Institute of Technology, Sambalpur")
-  sic                String         @unique
+  email              String             @unique
+  phone              String             @unique
+  college            String             @default("Silicon Institute of Technology, Sambalpur")
+  sic                String             @unique
   year               Year
   imageUrl           String?
   password           String
-  eventParticipation Int            @default(0)
+  eventParticipation Int                @default(0)
   refreshTokens      RefreshToken[]
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  eventParticipants  EventParticipant[]
 }
 
 model RefreshToken {
   id        String   @id @default(uuid())
   token     String   @unique
   userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Event {
+  id                Int                @id @default(autoincrement())
+  name              String
+  eventName         Events
+  eventType         EventType
+  participationType ParticipationType
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  participants      EventParticipant[]
+}
+
+model EventParticipant {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  userId    Int
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }

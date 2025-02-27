@@ -1,8 +1,116 @@
 import { EventCard } from "@/components/EventCards";
 import { ThreeDCard } from "@/components/ThreeDCard";
+import { Events, ParticipationType, EventType } from "@prisma/client";
+
 import React from "react";
 
 const Zreyas = () => {
+  const culturalEvents: {
+    id: number;
+    title: string;
+    date: string;
+    time: string;
+    desc: string;
+    image: string;
+    key: Events;
+    participationType: ParticipationType;
+    eventType: EventType;
+    registrationFee: number;
+    prizePool: number;
+  }[] = [
+    {
+      id: 1,
+      title: "Solo Dance",
+      date: "21st March",
+      time: "10:00 AM",
+      desc: "Solo dance competition",
+      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      key: Events.SOLO_DANCE,
+      participationType: ParticipationType.SOLO,
+      eventType: EventType.CULTURAL,
+      registrationFee: 0,
+      prizePool: 0
+    },
+    {
+      id: 2,
+      title: "Solo Singing",
+      date: "21st March",
+      time: "10:00 AM",
+      desc: "Solo singing competition",
+      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      key: Events.SOLO_SINGING,
+      participationType: ParticipationType.SOLO,
+      eventType: EventType.CULTURAL,
+      registrationFee: 0,
+      prizePool: 0
+    },
+    {
+      id: 3,
+      title: "Group Dance",
+      date: "21st March",
+      time: "10:00 AM",
+      desc: "Group dance competition",
+      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      key: Events.GROUP_DANCE,
+      participationType: ParticipationType.GROUP,
+      eventType: EventType.CULTURAL,
+      registrationFee: 0,
+      prizePool: 0
+    },
+    {
+      id: 4,
+      title: "Group Singing",
+      date: "21st March",
+      time: "10:00 AM",
+      desc: "Group singing competition",
+      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      key: Events.GROUP_SINGING,
+      participationType: ParticipationType.GROUP,
+      eventType: EventType.CULTURAL,
+      registrationFee: 0,
+      prizePool: 0
+    },
+    {
+      id: 5,
+      title: "Skit",
+      date: "21st March",
+      time: "10:00 AM",
+      desc: "Skit competition",
+      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      key: Events.SKIT,
+      participationType: ParticipationType.GROUP,
+      eventType: EventType.CULTURAL,
+      registrationFee: 0,
+      prizePool: 0
+    },
+    {
+      id: 6,
+      title: "Duo Dance",
+      date: "21st March",
+      time: "10:00 AM",
+      desc: "Duo dance competition",
+      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      key: Events.DUO_DANCE,
+      participationType: ParticipationType.DUO,
+      eventType: EventType.CULTURAL,
+      registrationFee: 0,
+      prizePool: 0
+    },
+    {
+      id: 7,
+      title: "Duo Singing",
+      date: "21st March",
+      time: "10:00 AM",
+      desc: "Duo singing competition",
+      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      key: Events.DUO_SINGING,
+      participationType: ParticipationType.DUO,
+      eventType: EventType.CULTURAL,
+      registrationFee: 0,
+      prizePool: 0
+    }
+  ];
+
   return (
     <div className="bg-neutral-900 overflow-y-scroll no-visible-scrollbar pt-6 w-full px-8 my-2 mr-2 rounded-2xl pb-8">
       <div className=" flex justify-between items-center">
@@ -12,16 +120,19 @@ const Zreyas = () => {
         </div>
       </div>
       <div className="mt-8 w-full">
-        <div className="flex gap-8">
-          <div className="bg-neutral-800 rounded-xl shadow-md p-4 w-full">
+        <div className="flex gap-8 flex-col lg:flex-row">
+          <div className="bg-neutral-800 rounded-xl shadow-md p-4 w-full lg:w-2/3 max-h-[475px]">
             <h1 className="text-[1.125rem] font-[700]">Cultural Events</h1>
-            <EventCard />
+            <div className="overflow-y-auto no-visible-scrollbar pr-2 max-h-[420px] scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-800">
+              <EventCard cardData={culturalEvents} />
+            </div>
           </div>
-          <div className="">
+          <div className="lg:w-1/3">
             <ThreeDCard />
           </div>
         </div>
       </div>
+
       <div className="mt-8 w-full">
         <div className="bg-neutral-800 rounded-xl shadow-md p-6 w-full flex justify-between items-center">
           <div className="w-[80%]">
@@ -40,7 +151,6 @@ const Zreyas = () => {
               Sign me up
             </button>
           </div>
-          {/* <EventCard /> */}
         </div>
         <div className="bg-neutral-800 mt-8 rounded-xl shadow-md p-6 w-full flex justify-between items-center">
           <div className="w-[80%]">
@@ -59,7 +169,6 @@ const Zreyas = () => {
               Sign me up
             </button>
           </div>
-          {/* <EventCard /> */}
         </div>
       </div>
     </div>

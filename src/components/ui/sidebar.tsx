@@ -86,22 +86,20 @@ export const DesktopSidebar = ({
 }: React.ComponentProps<typeof motion.div>) => {
   const { open, setOpen, animate } = useSidebar();
   return (
-    <>
-      <motion.div
-        className={cn(
-          "h-full  py-4 hidden  md:flex md:flex-col bg-neutral-800 w-[300px] flex-shrink-0",
-          className
-        )}
-        animate={{
-          width: animate ? (open ? "300px" : "60px") : "300px"
-        }}
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-        {...props}
-      >
-        {children}
-      </motion.div>
-    </>
+    <motion.div
+      className={cn(
+        "h-full py-4 hidden lg:flex lg:flex-col bg-neutral-800 flex-shrink-0",
+        className
+      )}
+      animate={{
+        width: animate ? (open ? "300px" : "60px") : "300px"
+      }}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      {...props}
+    >
+      {children}
+    </motion.div>
   );
 };
 
@@ -112,53 +110,46 @@ export const MobileSidebar = ({
 }: React.ComponentProps<"div">) => {
   const { open, setOpen } = useSidebar();
   return (
-    <>
-      <div
-        className={cn(
-          "h-10 px-4 py-4 flex flex-row md:hidden  items-center justify-between bg-neutral-900 w-full"
-        )}
-        {...props}
-      >
-        <div className="flex justify-end z-20 w-full">
-          <IconMenu2
-            className="text-neutral-200"
-            onClick={() => setOpen(!open)}
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 bg-black/50 z-[90] lg:hidden"
           />
-        </div>
-        <AnimatePresence>
-          {open && (
-            <motion.div
-              initial={{ x: "-100%", opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: "-100%", opacity: 0 }}
-              transition={{
-                duration: 0.3,
-                ease: "easeInOut"
-              }}
-              className={cn(
-                "fixed h-full w-full inset-0 bg-neutral-900 p-10 z-[100] flex flex-col justify-between",
-                className
-              )}
+          <motion.div
+            initial={{ x: "-100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "-100%", opacity: 0 }}
+            transition={{
+              duration: 0.3,
+              ease: "easeInOut"
+            }}
+            className={cn(
+              "fixed h-full w-[300px] top-0 left-0 bg-neutral-800 p-6 z-[100] flex flex-col justify-between lg:hidden",
+              className
+            )}
+          >
+            {children}
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute right-4 top-4 text-neutral-200 hover:text-white"
             >
-              <div
-                className="absolute right-10 top-10 z-50 text-neutral-200"
-                onClick={() => setOpen(!open)}
-              >
-                <IconX />
-              </div>
-              {children}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </>
+              <IconX />
+            </button>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 };
 
 export const SidebarLink = ({
   link,
   className,
-
   ...props
 }: {
   link: Links;
@@ -166,23 +157,38 @@ export const SidebarLink = ({
   props?: LinkProps;
 }) => {
   const { open, animate } = useSidebar();
+  const isDesktop =
+    typeof window !== "undefined" ? window.innerWidth >= 1024 : false;
+
   return (
     <Link
       href={link.href}
       className={cn(
-        "flex items-center px-4 justify-start gap-2  group/sidebar py-2",
+        "flex items-center px-4 justify-start gap-2 group/sidebar py-2",
         className
       )}
       {...props}
     >
       {link.icon}
 
+      {/* For desktop: animate visibility, For mobile: always show */}
       <motion.span
-        animate={{
-          display: animate ? (open ? "inline-block" : "none") : "inline-block",
-          opacity: animate ? (open ? 1 : 0) : 1
-        }}
-        className="text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+        animate={
+          isDesktop
+            ? {
+                display: animate
+                  ? open
+                    ? "inline-block"
+                    : "none"
+                  : "inline-block",
+                opacity: animate ? (open ? 1 : 0) : 1
+              }
+            : {
+                display: "inline-block",
+                opacity: 1
+              }
+        }
+        className="text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre"
       >
         {link.label}
       </motion.span>

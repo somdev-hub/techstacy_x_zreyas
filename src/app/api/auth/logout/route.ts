@@ -17,13 +17,31 @@ export async function POST() {
       });
     }
 
-    // Clear cookies
-    cookieStore.delete("accessToken");
-    cookieStore.delete("refreshToken");
-
-    return NextResponse.json({
+    // Create response
+    const response = NextResponse.json({
       message: "Logged out successfully"
     });
+
+    // Clear cookies with the same attributes they were set with
+    response.cookies.set({
+      name: "accessToken",
+      value: "",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 0,
+      path: "/"
+    });
+
+    response.cookies.set({
+      name: "refreshToken",
+      value: "",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 0,
+      path: "/"
+    });
+
+    return response;
   } catch (error) {
     console.error("Logout error:", error);
     return NextResponse.json(

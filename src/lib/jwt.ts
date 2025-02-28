@@ -1,73 +1,48 @@
-import * as jose from 'jose';
+import jwt from "jsonwebtoken";
 
-// Token payload types
+// Simple type for token payload
 interface TokenPayload {
   userId: string;
   email: string;
-  [key: string]: unknown;
+  role: string;
 }
 
-// Check if required environment variables are set
-const accessTokenSecret = process.env.JWT_ACCESS_SECRET;
-const refreshTokenSecret = process.env.JWT_REFRESH_SECRET;
+// Hard-code secrets for testing to eliminate environment variables as the issue
+const ACCESS_SECRET =
+  process.env.JWT_ACCESS_SECRET ||
+  "fallback_access_secret_for_development_only";
+const REFRESH_SECRET =
+  process.env.JWT_REFRESH_SECRET ||
+  "fallback_refresh_secret_for_development_only";
 
-if (!accessTokenSecret || !refreshTokenSecret) {
-  console.error("ERROR: JWT secrets not configured in environment variables");
+// Simple, direct implementation
+export function generateAccessToken(payload: TokenPayload): string {
+  console.log("Access token payload:", payload);
+  console.log(
+    "Using ACCESS_SECRET:",
+    ACCESS_SECRET ? "Secret available" : "SECRET MISSING"
+  );
+
+  // Simple implementation without try-catch for clarity
+  return jwt.sign(payload, ACCESS_SECRET, { expiresIn: "15m" });
 }
 
-// Convert string secrets to Uint8Array for jose
-const getSecretKey = (secret: string) => new TextEncoder().encode(secret);
+export function generateRefreshToken(payload: TokenPayload): string {
+  console.log("Refresh token payload:", payload);
+  console.log(
+    "Using REFRESH_SECRET:",
+    REFRESH_SECRET ? "Secret available" : "SECRET MISSING"
+  );
 
-/**
- * Generate an access token
- */
-export async function generateAccessToken(payload: TokenPayload): Promise<string> {
-  return await new jose.SignJWT(payload)
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('15m') // 15 minutes
-    .sign(getSecretKey(accessTokenSecret!));
+  // Simple implementation without try-catch for clarity
+  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: "7d" });
 }
 
-/**
- * Generate a refresh token
- */
-export async function generateRefreshToken(payload: TokenPayload): Promise<string> {
-  return await new jose.SignJWT(payload)
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('7d') // 7 days
-    .sign(getSecretKey(refreshTokenSecret!));
+// Simplified verification functions
+export function verifyAccessToken(token: string): TokenPayload {
+  return jwt.verify(token, ACCESS_SECRET) as TokenPayload;
 }
 
-/**
- * Verify an access token
- */
-export async function verifyAccessToken(token: string): Promise<TokenPayload | null> {
-  try {
-    const { payload } = await jose.jwtVerify(
-      token,
-      getSecretKey(accessTokenSecret!)
-    );
-    return payload as TokenPayload;
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-}
-
-/**
- * Verify a refresh token
- */
-export async function verifyRefreshToken(token: string): Promise<TokenPayload | null> {
-  try {
-    const { payload } = await jose.jwtVerify(
-      token,
-      getSecretKey(refreshTokenSecret!)
-    );
-    return payload as TokenPayload;
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
+export function verifyRefreshToken(token: string): TokenPayload {
+  return jwt.verify(token, REFRESH_SECRET) as TokenPayload;
 }

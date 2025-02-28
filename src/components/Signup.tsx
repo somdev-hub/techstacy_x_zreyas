@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useModal } from "@/context/ModalContext";
+import { Year } from "@prisma/client";
 
 export function Signup() {
   const router = useRouter();
@@ -18,15 +19,16 @@ export function Signup() {
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors },
   } = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
       college: "Silicon Institute of Technology, Sambalpur",
       phone: "",
       imageUrl: "",
-      eventParticipation: 0
-    }
+      eventParticipation: 0,
+      year: Year.FIRST_YEAR, // Add this default value
+    },
   });
 
   const onSubmit = async (data: SignupInput) => {
@@ -35,10 +37,10 @@ export function Signup() {
       const response = await fetch("/api/signup", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-        credentials: "include"
+        credentials: "include",
       });
 
       const result = await response.json();
@@ -62,8 +64,14 @@ export function Signup() {
       if (isOpen) {
         closeModal();
       }
-      // Redirect to dashboard
-      router.push("/dashboard/home");
+      // Get redirection URL from response or use default
+      const redirectUrl = result.redirect || "/dashboard/home";
+      console.log(`Redirecting to: ${redirectUrl}`);
+
+      // Allow a moment for cookies to be set
+      setTimeout(() => {
+        router.push(redirectUrl);
+      }, 500);
     } catch (error) {
       console.error("Signup error:", error);
       toast.error("Failed to create account. Please try again.");
@@ -118,15 +126,11 @@ export function Signup() {
               {...register("year")}
               id="year"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              defaultValue=""
             >
-              <option value="" disabled>
-                Select year
-              </option>
-              <option value="FIRST_YEAR">1st year</option>
-              <option value="SECOND_YEAR">2nd year</option>
-              <option value="THIRD_YEAR">3rd year</option>
-              <option value="FOURTH_YEAR">4th year</option>
+              <option value={Year.FIRST_YEAR}>1st year</option>
+              <option value={Year.SECOND_YEAR}>2nd year</option>
+              <option value={Year.THIRD_YEAR}>3rd year</option>
+              <option value={Year.FOURTH_YEAR}>4th year</option>
             </select>
             {errors.year && (
               <span className="text-red-500 text-sm">
@@ -224,7 +228,7 @@ const BottomGradient = () => {
 
 const LabelInputContainer = ({
   children,
-  className
+  className,
 }: {
   children: React.ReactNode;
   className?: string;

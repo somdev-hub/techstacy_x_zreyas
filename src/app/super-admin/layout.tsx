@@ -1,12 +1,12 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   IconArrowLeft,
   IconBrandTabler,
   IconSettings,
-  IconMenu2
+  IconMenu2,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
@@ -26,11 +26,11 @@ const defaultUserInfo = {
   sic: "",
   year: "",
   imageUrl: "https://assets.aceternity.com/avatars/default.png",
-  eventParticipation: 0
+  eventParticipation: 0,
 };
 
-export default function DashboardLayout({
-  children
+export default function SuperAdminLayout({
+  children,
 }: {
   children: React.ReactNode;
 }) {
@@ -39,6 +39,10 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [user, setUser] = useState(defaultUserInfo);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
@@ -50,72 +54,178 @@ export default function DashboardLayout({
       title: "New Event Registration",
       message: "You have successfully registered for Hackathon 2023",
       time: "2 hours ago",
-      read: false
+      read: false,
     },
     {
       id: 2,
       title: "Event Reminder",
       message: "Technical Workshop starts in 3 hours",
       time: "3 hours ago",
-      read: true
+      read: true,
     },
     {
       id: 3,
       title: "Registration Deadline",
       message: "Last day to register for Coding Competition",
       time: "1 day ago",
-      read: true
-    }
+      read: true,
+    },
   ];
 
-  const logoutHandler = () => {
-    toast.success("Logged out successfully");
+  const logoutHandler = async () => {
+    const response = await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+    if (response.ok) {
+      const data = await response.json();
+      toast.success(data.message);
+    }
     router.push("/");
   };
 
   const links = [
     {
       label: "Dashboard",
-      href: "/dashboard/home",
+      href: "/super-admin/home",
       icon: (
         <IconBrandTabler className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      )
+      ),
     },
     {
-      label: "Zreyas",
-      href: "/dashboard/zreyas",
+      label: "Attendance",
+      href: "/super-admin/attendance",
       icon: (
         <GiPartyPopper className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      )
+      ),
     },
     {
-      label: "Purchases",
-      href: "/dashboard/purchases",
+      label: "Payments",
+      href: "/super-admin/payments",
       icon: (
         <BiPurchaseTagAlt className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      )
+      ),
     },
     {
       label: "Results",
-      href: "/dashboard/results",
+      href: "/super-admin/results",
       icon: (
         <IconSettings className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      )
+      ),
     },
     {
       label: "Logout",
-      href: "#",
+      href: "/",
       icon: (
         <IconArrowLeft className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
-      onClick: logoutHandler
-    }
+      onClick: (e: React.MouseEvent) => {
+        e.preventDefault();
+        logoutHandler();
+      },
+    },
   ];
 
   const toggleProfileModal = () => {
     setOpen(false);
     setIsProfileModalOpen(!isProfileModalOpen);
   };
+
+  // Add authentication check and data fetching
+  useEffect(() => {
+    const fetchUserData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch("/api/user/me", {
+          credentials: "include"
+        });
+
+        if (!response.ok) {
+          // If not authenticated, redirect immediately
+          router.replace("/");
+          return;
+        }
+
+        const userData = await response.json();
+        
+        // Check if user is SUPERADMIN
+        if (userData.role === "ADMIN") {
+          toast.error("Please use the Admin dashboard");
+          router.replace("/admin/home");
+          return;
+        } else if (userData.role === "USER") {
+          toast.error("Please use the regular dashboard");
+          router.replace("/dashboard/home");
+          return;
+        } else if (userData.role !== "SUPERADMIN") {
+          toast.error("Unauthorized access");
+          router.replace("/");
+          return;
+        }
+
+        setUser(userData);
+      } catch (err: unknown) {
+        const error =
+          err instanceof Error ? err : new Error("Unknown error occurred");
+        console.error("Error fetching user data:", error);
+        setError(error.message);
+        toast.error("Failed to load user data");
+        router.replace("/");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+
+    // Token refresh logic
+    const refreshToken = async () => {
+      try {
+        const response = await fetch("/api/auth/refresh", {
+          method: "POST",
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          router.push("/");
+          toast.error("Session expired. Please log in again.");
+        }
+      } catch (error) {
+        console.error("Token refresh error:", error);
+      }
+    };
+
+    refreshToken();
+    const refreshInterval = setInterval(refreshToken, 14 * 60 * 1000);
+    return () => clearInterval(refreshInterval);
+  }, [router]);
+
+  // Modify the return statement to handle loading and error states
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-neutral-800">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-neutral-800">
+        <div className="text-white text-center">
+          <p className="text-red-400 mb-4">{error}</p>
+          <button
+            onClick={() => router.push("/")}
+            className="px-4 py-2 bg-neutral-700 rounded-lg"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-neutral-800 flex text-white h-[100dvh] overflow-hidden">
@@ -153,7 +263,7 @@ export default function DashboardLayout({
                     height={50}
                     alt="Avatar"
                   />
-                )
+                ),
               }}
               className="hover:bg-neutral-700/50 rounded-lg text-lg font-medium cursor-pointer"
             />

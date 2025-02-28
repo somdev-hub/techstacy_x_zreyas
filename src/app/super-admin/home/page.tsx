@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { EventType, Events } from "@prisma/client";
 
 const Home = () => {
   return (
@@ -14,14 +15,19 @@ const Home = () => {
               <div className="flex gap-4">
                 <select className="bg-neutral-700 rounded-md px-3 py-1">
                   <option value="">Event Type</option>
-                  <option value="TECHNICAL">Technical</option>
-                  <option value="NON_TECHNICAL">Non-Technical</option>
-                  <option value="SPORTS">Sports</option>
+                  {Object.values(EventType).map((eventType, key) => (
+                    <option value={eventType} key={key}>
+                      {eventType}
+                    </option>
+                  ))}
                 </select>
                 <select className="bg-neutral-700 rounded-md px-3 py-1">
                   <option value="">Event Name</option>
-                  <option value="event1">Event 1</option>
-                  <option value="event2">Event 2</option>
+                  {Object.values(Events).map((event, key) => (
+                    <option value={event} key={key}>
+                      {event}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -88,6 +94,14 @@ const Home = () => {
                     <option value="D">4th year</option>
                   </select>
                 </div>
+                <select className="bg-neutral-700 rounded-md px-3 py-2 h-10 w-full no-visible-scrollbar">
+                  <option value="">Select event</option>
+                  {Object.values(Events).map((event, key) => (
+                    <option value={event} key={key}>
+                      {event}
+                    </option>
+                  ))}
+                </select>
 
                 <button className="bg-blue-600 px-3 py-2 h-10 rounded-md">
                   Add
@@ -152,43 +166,91 @@ const Home = () => {
                   <div className="flex gap-4">
                     <select className="bg-neutral-700 rounded-md px-3 py-1">
                       <option value="">Event Type</option>
-                      <option value="TECHNICAL">Technical</option>
-                      <option value="NON_TECHNICAL">Non-Technical</option>
-                      <option value="SPORTS">Sports</option>
+                      {Object.values(EventType).map((eventType, key) => (
+                        <option value={eventType} key={key}>
+                          {eventType}
+                        </option>
+                      ))}
                     </select>
                     <select className="bg-neutral-700 rounded-md px-3 py-1">
                       <option value="">Event Name</option>
-                      <option value="event1">Event 1</option>
-                      <option value="event2">Event 2</option>
+                      {Object.values(Events).map((event, key) => (
+                        <option value={event} key={key}>
+                          {event}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
               </div>
               <div className="">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-neutral-700">
-                        <th className="text-left p-2">Name</th>
-                        <th className="text-left p-2">Year</th>
-                        <th className="text-left p-2">Event</th>
-                        <th className="text-left p-2">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-neutral-700">
-                        <td className="p-2">John Doe</td>
-                        <td className="p-2">2024</td>
-                        <td className="p-2">Hackathon</td>
-                        <td className="p-2">
-                          <button className="bg-blue-600 px-3 py-1 rounded-md">
-                            View
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                {/* Dummy data */}
+                {(() => {
+                  const dummyData = [
+                    {
+                      event: "Hackathon",
+                      eventType: "TECHNICAL",
+                      participationType: "TEAM",
+                      totalParticipants: 120
+                    },
+                    {
+                      event: "Cricket",
+                      eventType: "SPORTS",
+                      participationType: "TEAM",
+                      totalParticipants: 88
+                    },
+                    {
+                      event: "Chess",
+                      eventType: "SPORTS",
+                      participationType: "INDIVIDUAL",
+                      totalParticipants: 45
+                    },
+                    {
+                      event: "Coding Contest",
+                      eventType: "TECHNICAL",
+                      participationType: "INDIVIDUAL",
+                      totalParticipants: 200
+                    }
+                  ];
+
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-neutral-700">
+                            <th className="text-left p-2">Event</th>
+                            <th className="text-left p-2">Event type</th>
+                            <th className="text-left p-2">
+                              Participation type
+                            </th>
+                            <th className="text-left p-2">
+                              Total participants
+                            </th>
+                            <th className="text-left p-2">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dummyData.map((item, index) => (
+                            <tr
+                              key={index}
+                              className="border-b border-neutral-700"
+                            >
+                              <td className="p-2">{item.event}</td>
+                              <td className="p-2">{item.eventType}</td>
+                              <td className="p-2">{item.participationType}</td>
+                              <td className="p-2">{item.totalParticipants}</td>
+                              <td className="p-2">
+                                <button className="bg-blue-600 px-3 py-1 rounded-md">
+                                  View
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>

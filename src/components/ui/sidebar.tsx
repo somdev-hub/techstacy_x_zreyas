@@ -9,6 +9,7 @@ interface Links {
   label: string;
   href: string;
   icon: React.JSX.Element | React.ReactNode;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 interface SidebarContextProps {
@@ -159,7 +160,6 @@ export const SidebarLink = ({
   const { open, animate } = useSidebar();
   const isDesktop =
     typeof window !== "undefined" ? window.innerWidth >= 1024 : false;
-
   return (
     <Link
       href={link.href}
@@ -167,11 +167,10 @@ export const SidebarLink = ({
         "flex items-center px-4 justify-start gap-2 group/sidebar py-2",
         className
       )}
+      onClick={link.onClick}
       {...props}
     >
       {link.icon}
-
-      {/* For desktop: animate visibility, For mobile: always show */}
       <motion.span
         animate={
           isDesktop

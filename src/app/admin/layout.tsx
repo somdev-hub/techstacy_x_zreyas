@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -15,7 +15,7 @@ import { GiPartyPopper } from "react-icons/gi";
 import { BiPurchaseTagAlt } from "react-icons/bi";
 import { usePathname } from "next/navigation";
 import UserProfileModal from "@/components/UserProfileModal";
-import { FaBell, FaTimes } from "react-icons/fa";
+import { FaBell } from "react-icons/fa";
 
 // Default user data
 const defaultUserInfo = {
@@ -38,11 +38,106 @@ export default function DashboardLayout({
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const [user, setUser] = useState(defaultUserInfo);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
   };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch("/api/user/me", {
+          credentials: "include"
+        });
+
+        if (!response.ok) {
+          // If not authenticated, redirect immediately
+          router.replace("/");
+          return;
+        }
+
+        const userData = await response.json();
+        
+        if (userData.role === "SUPERADMIN") {
+          toast.error("Please use the Super Admin dashboard");
+          router.replace("/super-admin/home");
+          return;
+        } else if (userData.role === "USER") {
+          toast.error("Please use the regular dashboard");
+          router.replace("/dashboard/home");
+          return;
+        } else if (userData.role !== "ADMIN") {
+          toast.error("Unauthorized access");
+          router.replace("/");
+          return;
+        }
+
+        setUser(userData);
+      } catch (err: unknown) {
+        const error =
+          err instanceof Error ? err : new Error("Unknown error occurred");
+        console.error("Error fetching user data:", error);
+        setError(error.message);
+        toast.error("Failed to load user data");
+        router.replace("/");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+
+    // Set up token refresh logic
+    const refreshToken = async () => {
+      try {
+        const response = await fetch("/api/auth/refresh", {
+          method: "POST",
+          credentials: "include"
+        });
+
+        if (!response.ok) {
+          router.replace("/");
+          toast.error("Session expired. Please log in again.");
+        }
+      } catch (error) {
+        console.error("Token refresh error:", error);
+      }
+    };
+
+    refreshToken();
+    const refreshInterval = setInterval(refreshToken, 14 * 60 * 1000);
+    return () => clearInterval(refreshInterval);
+  }, [router]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-neutral-800">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-neutral-800">
+        <div className="text-white text-center">
+          <p className="text-red-400 mb-4">{error}</p>
+          <button
+            onClick={() => router.push("/")}
+            className="px-4 py-2 bg-neutral-700 rounded-lg"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const notifications = [
     {
@@ -68,36 +163,46 @@ export default function DashboardLayout({
     }
   ];
 
-  const logoutHandler = () => {
-    toast.success("Logged out successfully");
-    router.push("/");
+  const logoutHandler = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include"
+      });
+
+      toast.success("Logged out successfully");
+      router.replace("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout");
+    }
   };
 
   const links = [
     {
       label: "Dashboard",
-      href: "/dashboard/home",
+      href: "/admin/home",
       icon: (
         <IconBrandTabler className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       )
     },
     {
-      label: "Zreyas",
-      href: "/dashboard/zreyas",
+      label: "Attendance",
+      href: "/admin/attendance",
       icon: (
         <GiPartyPopper className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       )
     },
     {
-      label: "Purchases",
-      href: "/dashboard/purchases",
+      label: "Payments",
+      href: "/admin/payments",
       icon: (
         <BiPurchaseTagAlt className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       )
     },
     {
       label: "Results",
-      href: "/dashboard/results",
+      href: "/admin/results",
       icon: (
         <IconSettings className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       )
@@ -143,11 +248,11 @@ export default function DashboardLayout({
           <div onClick={toggleProfileModal}>
             <SidebarLink
               link={{
-                label: defaultUserInfo.name,
+                label: user.name,
                 href: "#",
                 icon: (
                   <Image
-                    src={defaultUserInfo.imageUrl}
+                    src={user.imageUrl}
                     className="h-8 w-8 flex-shrink-0 rounded-full"
                     width={50}
                     height={50}
@@ -211,7 +316,7 @@ export default function DashboardLayout({
       <UserProfileModal
         isOpen={isProfileModalOpen}
         onClose={toggleProfileModal}
-        userInfo={defaultUserInfo}
+        userInfo={user}
       />
     </div>
   );

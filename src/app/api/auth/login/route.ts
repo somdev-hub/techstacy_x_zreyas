@@ -2,14 +2,19 @@ import { loginSchema } from "@/lib/schemas";
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
-import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
-import { cookies } from "next/headers";
+import {
+  createAccessToken,
+  createRefreshToken,
+  TokenPayload,
+} from "@/lib/jose-auth";
 
 const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    // console.log(body);
+
     const result = loginSchema.safeParse(body);
 
     if (!result.success) {
@@ -21,9 +26,16 @@ export async function POST(request: Request) {
 
     const { email, password } = result.data;
 
-    // Find the user by email
+    // Find the user by email with role information
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        role: true,
+        name: true,
+      },
     });
 
     if (!user) {
@@ -42,66 +54,114 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate tokens
-    const accessToken = await generateAccessToken({
-      userId: user.id.toString(),
-      email: user.email
-    });
+    try {
+      // Create token payload with required fields
+      const tokenPayload: TokenPayload = {
+        userId: String(user.id), // Ensure userId is a string
+        email: user.email,
+        role: user.role,
+      };
 
-    const refreshToken = await generateRefreshToken({
-      userId: user.id.toString(),
-      email: user.email
-    });
+      // console.log("Creating tokens with payload:", tokenPayload);
 
-    // Store refresh token in database
-    await prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
-        userId: user.id
+      // Generate tokens
+      const [accessToken, refreshToken] = await Promise.all([
+        createAccessToken(tokenPayload),
+        createRefreshToken(tokenPayload),
+      ]);
+
+      // console.log(accessToken, refreshToken);
+
+      if (!accessToken || !refreshToken) {
+        throw new Error("Failed to generate tokens");
       }
-    });
 
-    // Set cookies
-    const cookieStore = await cookies();
-    cookieStore.set({
-      name: 'accessToken',
-      value: accessToken,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60, // 15 minutes
-      path: '/',
-    });
+      // Store refresh token in database
+      try {
+        // console.log(typeof refreshToken);
 
-    cookieStore.set({
-      name: 'refreshToken',
-      value: refreshToken,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/',
-    });
+        await prisma.refreshToken.create({
+          data: {
+            token: refreshToken,
+            userId: user.id,
+          },
+        });
+      } catch (error) {
+        // console.log(user.id);
+        console.log(error instanceof Error ? error.message : "Unknown error");
 
-    // Set user ID in an HTTP-only cookie
-    cookieStore.set({
-      name: 'userId',
-      value: user.id.toString(),
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/',
-    });
+        // console.log("hello world");
+      }
 
-    // Return user data without password
-    const { password: userPassword, ...userWithoutPassword } = user;
+      // Determine redirect URL based on role
+      let redirectUrl = "/dashboard/home";
+      switch (user.role) {
+        case "SUPERADMIN":
+          redirectUrl = "/super-admin/home";
+          break;
+        case "ADMIN":
+          redirectUrl = "/admin/home";
+          break;
+      }
 
-    return NextResponse.json({
-      message: "Login successful",
-      user: userWithoutPassword
-    });
+      const { password: _, ...userWithoutPassword } = user;
+
+      const response = NextResponse.json({
+        message: "Login successful",
+        user: userWithoutPassword,
+        redirect: redirectUrl,
+      });
+
+      // Set cookies
+      response.cookies.set({
+        name: "accessToken",
+        value: accessToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 15 * 60, // 15 minutes
+        path: "/",
+      });
+
+      response.cookies.set({
+        name: "refreshToken",
+        value: refreshToken,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+        path: "/",
+      });
+
+      response.cookies.set({
+        name: "userId",
+        value: String(user.id),
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 15 * 60, // 15 minutes
+        path: "/",
+      });
+
+      return response;
+    } catch (error) {
+      console.error("Token generation error:", error);
+      return NextResponse.json(
+        {
+          error: "Authentication failed",
+          details:
+            error instanceof Error
+              ? error.message
+              : "Unknown error during token generation",
+        },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        details:
+          error instanceof Error ? error.message : "Unknown error during login",
+      },
       { status: 500 }
     );
   }

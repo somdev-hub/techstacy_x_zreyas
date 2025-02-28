@@ -32,23 +32,33 @@ export function Login() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify(data),
-        credentials: "include" // Important for storing cookies
+        credentials: "include"
       });
 
       const result = await response.json();
 
       if (!response.ok) {
         toast.error(result.error || "Login failed");
+        console.error("Login error details:", result);
         setIsLoading(false);
         return;
       }
 
-      toast.success("Login successful!");
+      toast.success("Login successful! Redirecting...");
+
+      // Close modal if open
       if (isLoginOpen) {
         closeLoginModal();
       }
-      // Redirect to dashboard
-      router.push("/dashboard/home");
+
+      // Get redirection URL from response or use default
+      const redirectUrl = result.redirect || "/dashboard/home";
+      console.log(`Redirecting to: ${redirectUrl}`);
+
+      // Allow a moment for cookies to be set
+      setTimeout(() => {
+        router.push(redirectUrl);
+      }, 500);
     } catch (error) {
       console.error("Login error:", error);
       toast.error("Failed to login. Please try again.");

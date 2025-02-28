@@ -5,12 +5,12 @@ import { cookies } from "next/headers";
 const prisma = new PrismaClient();
 
 export async function GET(
-  request: NextRequest,
+  _: NextRequest,
   { params }: { params: { userId: string } }
 ) {
   try {
     // Get the userId from the route parameter
-    const { userId } = params;
+    const { userId } = await params;
 
     // Verify the user is accessing their own data
     const cookieStore = await cookies();
@@ -44,12 +44,13 @@ export async function GET(
         college: true,
         sic: true,
         year: true,
+        role: true,
         imageUrl: true,
         eventParticipation: true,
         createdAt: true,
-        updatedAt: true
+        updatedAt: true,
         // Explicitly exclude password
-      }
+      },
     });
 
     // Return 404 if user not found

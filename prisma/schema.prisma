@@ -40,7 +40,6 @@ enum Events {
   DUO_SINGING
   GROUP_SINGING
   SKIT
-
 }
 
 enum ParticipationType {
@@ -59,6 +58,12 @@ enum EventType {
   SPORTS
 }
 
+enum Role {
+  SUPERADMIN
+  ADMIN
+  USER
+}
+
 model User {
   id                 Int                @id @default(autoincrement())
   name               String
@@ -66,6 +71,7 @@ model User {
   phone              String             @unique
   college            String             @default("Silicon Institute of Technology, Sambalpur")
   sic                String             @unique
+  role               Role               @default(USER)
   year               Year
   imageUrl           String?
   password           String
@@ -74,11 +80,13 @@ model User {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   eventParticipants  EventParticipant[]
+  eventHeads         EventHead[]
+  eventAttendances   EventAttendance[]
 }
 
 model RefreshToken {
   id        String   @id @default(uuid())
-  token     String   @unique
+  token     String   @unique @db.VarChar(255)
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -90,9 +98,29 @@ model Event {
   eventName         Events
   eventType         EventType
   participationType ParticipationType
+  eventHeads        EventHead[]
+  eventAttendances  EventAttendance[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   participants      EventParticipant[]
+}
+
+model EventHead {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  userId    Int
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model EventAttendance {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  userId    Int
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }
 
 model EventParticipant {

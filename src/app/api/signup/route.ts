@@ -3,8 +3,13 @@ import { signupSchema } from "@/lib/schemas";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { ZodError } from "zod";
-import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
+// import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
 import { cookies } from "next/headers";
+import {
+  createAccessToken,
+  createRefreshToken,
+  TokenPayload,
+} from "@/lib/jose-auth";
 
 const prisma = new PrismaClient();
 
@@ -17,13 +22,13 @@ export async function POST(request: Request) {
 
     // Check if user already exists
     const existingUserWithEmail = await prisma.user.findUnique({
-      where: { email: validatedData.email }
+      where: { email: validatedData.email },
     });
     const existingUserWithSic = await prisma.user.findUnique({
-      where: { sic: validatedData.sic }
+      where: { sic: validatedData.sic },
     });
     const existingUserWithPhone = await prisma.user.findUnique({
-      where: { phone: validatedData.phone }
+      where: { phone: validatedData.phone },
     });
 
     if (existingUserWithEmail) {
@@ -57,61 +62,93 @@ export async function POST(request: Request) {
         sic: validatedData.sic,
         phone: validatedData.phone,
         college: "Silicon Institute of Technology, Sambalpur",
-        password: hashedPassword
-      }
+        password: hashedPassword,
+      },
     });
+
+    const tokenPayload: TokenPayload = {
+      userId: String(user.id), // Ensure userId is a string
+      email: user.email,
+      role: user.role,
+    };
+
+    // console.log("Creating tokens with payload:", tokenPayload);
 
     // Generate tokens
-    const accessToken = await generateAccessToken({
-      userId: user.id.toString(),
-      email: user.email
-    });
-
-    const refreshToken = await generateRefreshToken({
-      userId: user.id.toString(),
-      email: user.email
-    });
+    const [accessToken, refreshToken] = await Promise.all([
+      createAccessToken(tokenPayload),
+      createRefreshToken(tokenPayload),
+    ]);
 
     // Store refresh token in database
-    await prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
-        userId: user.id
-      }
+    try {
+      // console.log(typeof refreshToken);
+
+      await prisma.refreshToken.create({
+        data: {
+          token: refreshToken,
+          userId: user.id,
+        },
+      });
+    } catch (error) {
+      // console.log(user.id);
+      console.log(error instanceof Error ? error.message : "Unknown error");
+
+      // console.log("hello world");
+    }
+
+    const { password: _, ...userWithoutPassword } = user;
+
+    let redirectUrl = "/dashboard/home";
+    switch (user.role) {
+      case "SUPERADMIN":
+        redirectUrl = "/super-admin/home";
+        break;
+      case "ADMIN":
+        redirectUrl = "/admin/home";
+        break;
+    }
+    const response = NextResponse.json({
+      message: "Login successful",
+      user: userWithoutPassword,
+      redirect: redirectUrl,
     });
 
     // Set cookies
-    const cookieStore = await cookies();
-    cookieStore.set({
+    response.cookies.set({
       name: "accessToken",
       value: accessToken,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 15 * 60, // 15 minutes
-      path: "/"
+      path: "/",
     });
 
-    cookieStore.set({
+    response.cookies.set({
       name: "refreshToken",
       value: refreshToken,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: "/"
+      path: "/",
     });
 
-    const { password, ...userWithoutPassword } = user;
-
-    return NextResponse.json({
-      message: "Signup successful",
-      user: userWithoutPassword
+    response.cookies.set({
+      name: "userId",
+      value: String(user.id),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 15 * 60, // 15 minutes
+      path: "/",
     });
+
+    return response;
   } catch (error) {
     if (error instanceof ZodError) {
       // Handle validation errors
       const errorMessages = error.errors.map((err) => ({
         field: err.path.join("."),
-        message: err.message
+        message: err.message,
       }));
 
       return NextResponse.json(

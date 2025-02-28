@@ -6,7 +6,7 @@ import {
   IconArrowLeft,
   IconBrandTabler,
   IconSettings,
-  IconMenu2
+  IconMenu2,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
@@ -26,11 +26,11 @@ const defaultUserInfo = {
   sic: "",
   year: "",
   imageUrl: "https://assets.aceternity.com/avatars/default.png",
-  eventParticipation: 0
+  eventParticipation: 0,
 };
 
 export default function DashboardLayout({
-  children
+  children,
 }: {
   children: React.ReactNode;
 }) {
@@ -38,7 +38,6 @@ export default function DashboardLayout({
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
   const [user, setUser] = useState(defaultUserInfo);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,75 +51,52 @@ export default function DashboardLayout({
       title: "New Event Registration",
       message: "You have successfully registered for Hackathon 2023",
       time: "2 hours ago",
-      read: false
+      read: false,
     },
     {
       id: 2,
       title: "Event Reminder",
       message: "Technical Workshop starts in 3 hours",
       time: "3 hours ago",
-      read: true
+      read: true,
     },
     {
       id: 3,
       title: "Registration Deadline",
       message: "Last day to register for Coding Competition",
       time: "1 day ago",
-      read: true
-    }
+      read: true,
+    },
   ];
 
-  const logoutHandler = async () => {
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include"
-      });
-
-      toast.success("Logged out successfully");
-      router.push("/");
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast.error("Failed to logout");
-    }
-  };
-
-  // Fetch user ID from cookies via API
   useEffect(() => {
     const fetchUserData = async () => {
-      setIsLoading(true);
-      setError(null);
-
       try {
-        const idResponse = await fetch("/api/getUserId", {
-          credentials: "include"
+        const response = await fetch("/api/user/me", {
+          credentials: "include",
         });
 
-        if (!idResponse.ok) {
-          throw new Error("Failed to retrieve user session");
+        if (!response.ok) {
+          // If not authenticated, redirect immediately
+          router.replace("/");
+          return;
         }
 
-        const idData = await idResponse.json();
-        if (!idData.userId) {
-          throw new Error("User ID not found");
+        const result = await response.json();
+        
+        // Check user role and redirect if needed
+        if (result.role === "SUPERADMIN") {
+          toast.error("Please use the Super Admin dashboard");
+          router.replace("/super-admin/home");
+          return;
+        } else if (result.role === "ADMIN") {
+          toast.error("Please use the Admin dashboard");
+          router.replace("/admin/home");
+          return;
         }
-
-        setUserId(idData.userId);
-
-        // Now fetch user details with the ID
-        const userResponse = await fetch(`/api/user/${idData.userId}`, {
-          credentials: "include"
-        });
-
-        if (!userResponse.ok) {
-          throw new Error("Failed to retrieve user data");
-        }
-
-        const userData = await userResponse.json();
-        console.log("User data:", userData);
 
         setUser({
-          ...userData
+          ...result
         });
       } catch (err: unknown) {
         const error =
@@ -128,14 +104,8 @@ export default function DashboardLayout({
         console.error("Error fetching user data:", error);
         setError(error.message);
         toast.error("Failed to load user data");
-
-        // Redirect to login if authentication issue
-        if (
-          error.message.includes("session") ||
-          error.message.includes("not found")
-        ) {
-          router.push("/");
-        }
+        // Redirect to login on any error
+        router.replace("/");
       } finally {
         setIsLoading(false);
       }
@@ -148,11 +118,11 @@ export default function DashboardLayout({
       try {
         const response = await fetch("/api/auth/refresh", {
           method: "POST",
-          credentials: "include"
+          credentials: "include",
         });
 
         if (!response.ok) {
-          router.push("/");
+          router.replace("/");
           toast.error("Session expired. Please log in again.");
         }
       } catch (error) {
@@ -160,15 +130,25 @@ export default function DashboardLayout({
       }
     };
 
-    // Initial token refresh
     refreshToken();
-
-    // Set up a periodic refresh of the access token (e.g., every 14 minutes)
     const refreshInterval = setInterval(refreshToken, 14 * 60 * 1000);
-
-    // Clean up interval when component unmounts
     return () => clearInterval(refreshInterval);
   }, [router]);
+
+  const logoutHandler = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      toast.success("Logged out successfully");
+      router.replace("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout");
+    }
+  };
 
   // Let's add some debug logging to check the user data
   useEffect(() => {
@@ -183,28 +163,28 @@ export default function DashboardLayout({
       href: "/dashboard/home",
       icon: (
         <IconBrandTabler className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      )
+      ),
     },
     {
       label: "Zreyas",
       href: "/dashboard/zreyas",
       icon: (
         <GiPartyPopper className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      )
+      ),
     },
     {
       label: "Purchases",
       href: "/dashboard/purchases",
       icon: (
         <BiPurchaseTagAlt className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      )
+      ),
     },
     {
       label: "Results",
       href: "/dashboard/results",
       icon: (
         <IconSettings className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      )
+      ),
     },
     {
       label: "Logout",
@@ -212,8 +192,11 @@ export default function DashboardLayout({
       icon: (
         <IconArrowLeft className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
-      onClick: logoutHandler
-    }
+      onClick: (e: React.MouseEvent) => {
+        e.preventDefault();
+        logoutHandler();
+      },
+    },
   ];
 
   const toggleProfileModal = () => {
@@ -261,7 +244,7 @@ export default function DashboardLayout({
                     height={50}
                     alt="Avatar"
                   />
-                )
+                ),
               }}
               className="hover:bg-neutral-700/50 rounded-lg text-lg font-medium cursor-pointer"
             />
@@ -390,7 +373,7 @@ export default function DashboardLayout({
           imageUrl:
             user?.imageUrl ||
             "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541",
-          eventParticipation: user?.eventParticipation || 0
+          eventParticipation: user?.eventParticipation || 0,
         }}
       />
     </div>

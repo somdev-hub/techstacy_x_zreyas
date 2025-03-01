@@ -32,7 +32,7 @@ export async function POST(
     const { eventId, userId } = await req.json();
     
     if (!eventId || !userId) {
-        return res.json({ error: "Missing eventId or userId" }, { status: 400 });
+        return NextResponse.json({ error: "Missing eventId or userId" }, { status: 400 });
     }
     
     try {
@@ -42,7 +42,7 @@ export async function POST(
         });
     
         if (!event) {
-        return res.json({ error: "Event not found" }, { status: 404 });
+        return NextResponse.json({ error: "Event not found" }, { status: 404 });
         }
     
         const user = await prisma.user.findUnique({
@@ -51,7 +51,7 @@ export async function POST(
         });
     
         if (!user) {
-        return res.json({ error: "User not found" }, { status: 404 });
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
     
         const eventParticipant = await prisma.eventParticipant.create({
@@ -61,10 +61,10 @@ export async function POST(
         }
         });
     
-        return res.json(eventParticipant);
+        return NextResponse.json(eventParticipant);
     } catch (error) {
         console.error("Error registering for event:", error);
-        return res.json({ error: "Internal server error" }, { status: 500 });
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
     }
 )

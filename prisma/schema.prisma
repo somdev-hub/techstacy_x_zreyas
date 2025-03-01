@@ -95,14 +95,20 @@ model RefreshToken {
 model Event {
   id                Int                @id @default(autoincrement())
   name              String
-  eventName         Events
+  eventName         Events             @unique
   eventType         EventType
+  description       String
+  imageUrl          String
+  date              DateTime
+  time              String
+  venue             String
   participationType ParticipationType
   eventHeads        EventHead[]
   eventAttendances  EventAttendance[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   participants      EventParticipant[]
+  prizePool         Int                @default(0)
 }
 
 model EventHead {

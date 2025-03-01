@@ -16,6 +16,7 @@ import { BiPurchaseTagAlt } from "react-icons/bi";
 import { usePathname } from "next/navigation";
 import UserProfileModal from "@/components/UserProfileModal";
 import { FaBell, FaTimes } from "react-icons/fa";
+import Notification from "@/components/Notification";
 
 // Default user data as fallback
 const defaultUserInfo = {
@@ -83,7 +84,7 @@ export default function DashboardLayout({
         }
 
         const result = await response.json();
-        
+
         // Check user role and redirect if needed
         if (result.role === "SUPERADMIN") {
           toast.error("Please use the Super Admin dashboard");
@@ -96,7 +97,7 @@ export default function DashboardLayout({
         }
 
         setUser({
-          ...result
+          ...result,
         });
       } catch (err: unknown) {
         const error =
@@ -300,60 +301,7 @@ export default function DashboardLayout({
               </div>
             </div>
             {/* Notification Modal */}
-            {isModalOpen && (
-              <>
-                <div
-                  className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40"
-                  onClick={toggleModal}
-                />
-                <div className="fixed top-24 right-2 left-2 md:right-8 md:w-96 bg-neutral-800 rounded-xl shadow-lg z-50 overflow-hidden">
-                  <div className="p-4 border-b border-neutral-700 flex justify-between items-center">
-                    <h2 className="text-xl font-bold">Notifications</h2>
-                    <button
-                      onClick={toggleModal}
-                      className="hover:bg-neutral-700 p-2 rounded-full"
-                    >
-                      <FaTimes />
-                    </button>
-                  </div>
-                  <div className="max-h-[70vh] overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <p className="p-4 text-center text-neutral-400">
-                        No notifications
-                      </p>
-                    ) : (
-                      notifications.map((notification) => (
-                        <div
-                          key={notification.id}
-                          className={`p-4 border-b border-neutral-700 hover:bg-neutral-700 cursor-pointer ${
-                            !notification.read
-                              ? "bg-neutral-700 bg-opacity-40"
-                              : ""
-                          }`}
-                        >
-                          <div className="flex justify-between items-start">
-                            <h3 className="font-semibold">
-                              {notification.title}
-                            </h3>
-                            <span className="text-xs text-neutral-400">
-                              {notification.time}
-                            </span>
-                          </div>
-                          <p className="text-sm text-neutral-300 mt-1">
-                            {notification.message}
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  <div className="p-3 border-t border-neutral-700">
-                    <button className="w-full text-center text-sm text-blue-400 hover:text-blue-300">
-                      Mark all as read
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+            {isModalOpen && <Notification toggleModal={toggleModal} />}
             {children}
           </div>
         )}

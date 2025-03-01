@@ -15,7 +15,8 @@ import { GiPartyPopper } from "react-icons/gi";
 import { BiPurchaseTagAlt } from "react-icons/bi";
 import { usePathname } from "next/navigation";
 import UserProfileModal from "@/components/UserProfileModal";
-import { FaBell, FaTimes } from "react-icons/fa";
+import { FaBell } from "react-icons/fa";
+import Notification from "@/components/Notification";
 
 // Default user data
 const defaultUserInfo = {
@@ -39,7 +40,7 @@ export default function SuperAdminLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+  // const [userId, setUserId] = useState<string | null>(null);
   const [user, setUser] = useState(defaultUserInfo);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +140,7 @@ export default function SuperAdminLayout({
 
       try {
         const response = await fetch("/api/user/me", {
-          credentials: "include"
+          credentials: "include",
         });
 
         if (!response.ok) {
@@ -149,7 +150,7 @@ export default function SuperAdminLayout({
         }
 
         const userData = await response.json();
-        
+
         // Check if user is SUPERADMIN
         if (userData.role === "ADMIN") {
           toast.error("Please use the Admin dashboard");
@@ -305,13 +306,7 @@ export default function SuperAdminLayout({
           {/* Notification Modal */}
           {isModalOpen && (
             <>
-              <div
-                className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40"
-                onClick={toggleModal}
-              />
-              <div className="fixed top-24 right-2 left-2 md:right-8 md:w-96 bg-neutral-800 rounded-xl shadow-lg z-50 overflow-hidden">
-                {/* ...existing code for notification modal... */}
-              </div>
+              <Notification toggleModal={toggleModal} />
             </>
           )}
           {children}

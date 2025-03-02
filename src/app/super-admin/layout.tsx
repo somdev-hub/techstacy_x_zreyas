@@ -101,6 +101,20 @@ export default function SuperAdminLayout({
       ),
     },
     {
+      label: "Registrations",
+      href: "/super-admin/registrations",
+      icon: (
+        <GiPartyPopper className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+      ),
+    },
+    {
+      label: "Events",
+      href: "/super-admin/events",
+      icon: (
+        <GiPartyPopper className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+      ),
+    },
+    {
       label: "Payments",
       href: "/super-admin/payments",
       icon: (
@@ -313,10 +327,14 @@ export default function SuperAdminLayout({
         </div>
       </div>
 
+      {/* User Profile Modal */}
       <UserProfileModal
         isOpen={isProfileModalOpen}
         onClose={toggleProfileModal}
-        userInfo={defaultUserInfo}
+        userInfo={{
+          ...user,
+          eventParticipation: 0 // Since superadmin doesn't participate in events
+        }}
       />
     </div>
   );

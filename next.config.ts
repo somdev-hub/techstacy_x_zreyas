@@ -9,7 +9,9 @@ const nextConfig: NextConfig = {
       "images.unsplash.com",
       "assets.aceternity.com",
       "ui.aceternity.com",
-      "upload.wikimedia.org"
+      "upload.wikimedia.org",
+      "beautiful-gold-bison.myfilebase.com",
+      "techstacy-x-zreyas.s3.filebase.com"
     ]
   }
 };

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Year } from "@prisma/client";
 
 export const signupSchema = z
   .object({
@@ -28,5 +29,18 @@ export const loginSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters")
 });
 
+export const userFormSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().regex(/^\d{10}$/, "Phone number must be 10 digits"),
+  sic: z.string().regex(/^[0-9]{7}$/, "SIC must be 7 digits"),
+  year: z.nativeEnum(Year, {
+    errorMap: () => ({ message: "Please select a valid year" }),
+  }),
+  password: z.string().min(6, "Password must be at least 6 characters").optional(),
+  managedEvents: z.array(z.string()).optional(),
+});
+
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type UserFormData = z.infer<typeof userFormSchema>;

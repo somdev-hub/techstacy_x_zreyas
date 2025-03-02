@@ -15,7 +15,7 @@ import { GiPartyPopper } from "react-icons/gi";
 import { BiPurchaseTagAlt } from "react-icons/bi";
 import { usePathname } from "next/navigation";
 import UserProfileModal from "@/components/UserProfileModal";
-import { FaBell, FaTimes } from "react-icons/fa";
+import { FaBell } from "react-icons/fa";
 import Notification from "@/components/Notification";
 
 // Default user data as fallback

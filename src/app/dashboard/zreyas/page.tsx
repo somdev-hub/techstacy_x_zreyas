@@ -1,31 +1,19 @@
+"use client";
 import { EventCard } from "@/components/EventCards";
 import { ThreeDCard } from "@/components/ThreeDCard";
 import { Events, ParticipationType, EventType } from "@prisma/client";
-
 import React from "react";
 
 const Zreyas = () => {
-  const culturalEvents: {
-    id: number;
-    title: string;
-    date: string;
-    time: string;
-    desc: string;
-    image: string;
-    key: Events;
-    participationType: ParticipationType;
-    eventType: EventType;
-    registrationFee: number;
-    prizePool: number;
-  }[] = [
+  const culturalEvents = [
     {
       id: 1,
-      title: "Solo Dance",
+      name: "Solo Dance",
       date: "21st March",
       time: "10:00 AM",
-      desc: "Solo dance competition",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.SOLO_DANCE,
+      description: "Solo dance competition",
+      imageUrl: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      eventName: Events.SOLO_DANCE,
       participationType: ParticipationType.SOLO,
       eventType: EventType.CULTURAL,
       registrationFee: 0,
@@ -33,12 +21,12 @@ const Zreyas = () => {
     },
     {
       id: 2,
-      title: "Solo Singing",
+      name: "Solo Singing",
       date: "21st March",
       time: "10:00 AM",
-      desc: "Solo singing competition",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.SOLO_SINGING,
+      description: "Solo singing competition",
+      imageUrl: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      eventName: Events.SOLO_SINGING,
       participationType: ParticipationType.SOLO,
       eventType: EventType.CULTURAL,
       registrationFee: 0,
@@ -46,12 +34,12 @@ const Zreyas = () => {
     },
     {
       id: 3,
-      title: "Group Dance",
+      name: "Group Dance",
       date: "21st March",
       time: "10:00 AM",
-      desc: "Group dance competition",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.GROUP_DANCE,
+      description: "Group dance competition",
+      imageUrl: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      eventName: Events.GROUP_DANCE,
       participationType: ParticipationType.GROUP,
       eventType: EventType.CULTURAL,
       registrationFee: 0,
@@ -59,12 +47,12 @@ const Zreyas = () => {
     },
     {
       id: 4,
-      title: "Group Singing",
+      name: "Group Singing",
       date: "21st March",
       time: "10:00 AM",
-      desc: "Group singing competition",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.GROUP_SINGING,
+      description: "Group singing competition",
+      imageUrl: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      eventName: Events.GROUP_SINGING,
       participationType: ParticipationType.GROUP,
       eventType: EventType.CULTURAL,
       registrationFee: 0,
@@ -72,12 +60,12 @@ const Zreyas = () => {
     },
     {
       id: 5,
-      title: "Skit",
+      name: "Skit",
       date: "21st March",
       time: "10:00 AM",
-      desc: "Skit competition",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.SKIT,
+      description: "Skit competition",
+      imageUrl: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      eventName: Events.SKIT,
       participationType: ParticipationType.GROUP,
       eventType: EventType.CULTURAL,
       registrationFee: 0,
@@ -85,12 +73,12 @@ const Zreyas = () => {
     },
     {
       id: 6,
-      title: "Duo Dance",
+      name: "Duo Dance",
       date: "21st March",
       time: "10:00 AM",
-      desc: "Duo dance competition",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.DUO_DANCE,
+      description: "Duo dance competition",
+      imageUrl: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      eventName: Events.DUO_DANCE,
       participationType: ParticipationType.DUO,
       eventType: EventType.CULTURAL,
       registrationFee: 0,
@@ -98,12 +86,12 @@ const Zreyas = () => {
     },
     {
       id: 7,
-      title: "Duo Singing",
+      name: "Duo Singing",
       date: "21st March",
       time: "10:00 AM",
-      desc: "Duo singing competition",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.DUO_SINGING,
+      description: "Duo singing competition",
+      imageUrl: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
+      eventName: Events.DUO_SINGING,
       participationType: ParticipationType.DUO,
       eventType: EventType.CULTURAL,
       registrationFee: 0,
@@ -113,7 +101,7 @@ const Zreyas = () => {
 
   return (
     <div className="bg-neutral-900 overflow-y-scroll no-visible-scrollbar pt-6 w-full px-8 my-2 mr-2 rounded-2xl pb-8">
-      <div className=" flex justify-between items-center">
+      <div className="flex justify-between items-center">
         <div className="">
           <h1 className="text-[1.5rem] font-[700]">Zreyas</h1>
           <p className="text-[1.25rem]">Explore the annual cultural fest</p>
@@ -124,7 +112,9 @@ const Zreyas = () => {
           <div className="bg-neutral-800 rounded-xl shadow-md p-4 w-full lg:w-2/3 max-h-[475px]">
             <h1 className="text-[1.125rem] font-[700]">Cultural Events</h1>
             <div className="overflow-y-auto no-visible-scrollbar pr-2 max-h-[420px] scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-800">
-              <EventCard cardData={culturalEvents} />
+              <EventCard 
+                cardData={culturalEvents}
+              />
             </div>
           </div>
           <div className="lg:w-1/3">

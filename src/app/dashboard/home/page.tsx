@@ -1,275 +1,88 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { EventCard } from "@/components/EventCards";
 import { ThreeDCard } from "@/components/ThreeDCard";
-import { FaBell, FaTimes } from "react-icons/fa";
 import { Events, ParticipationType, EventType } from "@prisma/client";
-
-// Sample notification data
-const notifications = [
-  {
-    id: 1,
-    title: "New Event Registration",
-    message: "You have successfully registered for Hackathon 2023",
-    time: "2 hours ago",
-    read: false
-  },
-  {
-    id: 2,
-    title: "Event Reminder",
-    message: "Technical Workshop starts in 3 hours",
-    time: "3 hours ago",
-    read: true
-  },
-  {
-    id: 3,
-    title: "Registration Deadline",
-    message: "Last day to register for Coding Competition",
-    time: "1 day ago",
-    read: true
-  }
-];
+import { toast } from "sonner";
 
 const Home = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [technicalEventsData, setTechnicalEventsData] = useState([]);
+  const [nonTechnicalEventsData, setNonTechnicalEventsData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<{ id: string } | null>(null);
 
-  const toggleModal = () => {
-    setIsModalOpen(!isModalOpen);
-  };
-
-  const technicalEvents: {
-    id: number;
-    title: string;
-    date: string;
-    time: string;
-    desc: string;
-    image: string;
-    key: Events;
-    participationType: ParticipationType;
-    eventType: EventType;
-    registrationFee: number;
-    prizePool: number;
-  }[] = [
-    /**
-     * TECH_ROADIES
-  NON_TECH_ROADIES
-  DEBUG
-  QUIZMANIA
-  CODE_RELAY
-  PANCHAYAT
-  SPELL_BEE
-  ROBO_RACE
-  ROBO_WAR
-  TRESURE_HUNT
-  GULLEY_CRICKET
-  DUNK_THE_BALL
-  DART
-  PING_PONG
-  FOOTSOL
-  SOLO_DANCE
-  DUO_DANCE
-  GROUP_DANCE
-  SOLO_SINGING
-  DUO_SINGING
-  GROUP_SINGING
-  SKIT
-     */
-    {
-      id: 1,
-      title: "Technical Roadies",
-      date: "21st March 2025",
-      time: "9:00 AM",
-      desc: "A technical treasure hunt event where participants have to solve technical puzzles and riddles to reach the final destination.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.TECH_ROADIES,
-      participationType: ParticipationType.QUINTET,
-      eventType: EventType.TECHNICAL,
-      registrationFee: 0,
-      prizePool: 3000
-    },
-    {
-      id: 2,
-      title: "Debug",
-      date: "21st March 2025",
-      time: "9:00 AM",
-      desc: "A debugging competition where participants have to find and fix bugs in the given code.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.DEBUG,
-      participationType: ParticipationType.SOLO,
-      eventType: EventType.TECHNICAL,
-      registrationFee: 0,
-      prizePool: 3000
-    },
-    {
-      id: 3,
-      title: "Quizmania",
-      date: "21st March 2025",
-      time: "9:00 AM",
-      desc: "A quiz competition where participants have to answer a series of questions based on various topics.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.QUIZMANIA,
-      participationType: ParticipationType.SOLO,
-      eventType: EventType.TECHNICAL,
-      registrationFee: 0,
-      prizePool: 3000
-    },
-    {
-      id: 4,
-      title: "Code Relay",
-      date: "21st March 2025",
-      time: "9:00 AM",
-      desc: "A coding competition where participants have to solve a series of coding problems.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.CODE_RELAY,
-      participationType: ParticipationType.QUAD,
-      eventType: EventType.TECHNICAL,
-      registrationFee: 0,
-      prizePool: 3000
-    },
-    {
-      id: 5,
-      title: "Panchayat",
-      date: "21st March 2025",
-      time: "9:00 AM",
-      desc: "A debate competition where participants have to discuss and debate on various topics.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.PANCHAYAT,
-      participationType: ParticipationType.SOLO,
-      eventType: EventType.TECHNICAL,
-      registrationFee: 0,
-      prizePool: 3000
-    },
-    {
-      id: 6,
-      title: "Spell Bee",
-      date: "21st March 2025",
-      time: "9:00 AM",
-      desc: "A spelling competition where participants have to spell words correctly.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.SPELL_BEE,
-      participationType: ParticipationType.SOLO,
-      eventType: EventType.TECHNICAL,
-      registrationFee: 0,
-      prizePool: 3000
-    }
-  ];
-
-  const nonTechnicalEvents: {
-    id: number;
-    title: string;
-    date: string;
-    time: string;
-    desc: string;
-    image: string;
-    key: Events;
-    participationType: ParticipationType;
-    eventType: EventType;
-    registrationFee: number;
-    prizePool: number;
-  }[] = [
-    {
-      id: 1,
-      title: "Non-Technical Roadies",
-      date: "22nd March 2025",
-      time: "9:00 AM",
-      desc: "A non-technical treasure hunt event where participants have to solve non-technical puzzles and riddles to reach the final destination.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.NON_TECH_ROADIES,
-      participationType: ParticipationType.SOLO,
-      eventType: EventType.NON_TECHNICAL,
-      registrationFee: 15,
-      prizePool: 3000
-    },
-    {
-      id: 2,
-      title: "Tresure Hunt",
-      date: "22nd March 2025",
-      time: "9:00 AM",
-      desc: "A treasure hunt event where participants have to solve puzzles and riddles to reach the final destination.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.TRESURE_HUNT,
-      participationType: ParticipationType.QUINTET,
-      eventType: EventType.NON_TECHNICAL,
-      registrationFee: 15,
-      prizePool: 3000
-    },
-    {
-      id: 3,
-      title: "Gulley Cricket",
-      date: "22nd March 2025",
-      time: "9:00 AM",
-      desc: "A cricket competition where participants have to play cricket in the streets.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.GULLEY_CRICKET,
-      participationType: ParticipationType.GROUP,
-      eventType: EventType.NON_TECHNICAL,
-      registrationFee: 15,
-      prizePool: 3000
-    },
-    {
-      id: 4,
-      title: "Dunk The Ball",
-      date: "22nd March 2025",
-      time: "9:00 AM",
-      desc: "A basketball competition where participants have to dunk the ball.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.DUNK_THE_BALL,
-      participationType: ParticipationType.SOLO,
-      eventType: EventType.NON_TECHNICAL,
-      registrationFee: 15,
-      prizePool: 3000
-    },
-    {
-      id: 5,
-      title: "Dart",
-      date: "22nd March 2025",
-      time: "9:00 AM",
-      desc: "A dart competition where participants have to hit the bullseye.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.DART,
-      participationType: ParticipationType.SOLO,
-      eventType: EventType.NON_TECHNICAL,
-      registrationFee: 15,
-      prizePool: 3000
-    },
-    {
-      id: 6,
-      title: "Ping Pong",
-      date: "22nd March 2025",
-      time: "9:00 AM",
-      desc: "A table tennis competition where participants have to play table tennis.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.PING_PONG,
-      participationType: ParticipationType.SOLO,
-      eventType: EventType.NON_TECHNICAL,
-      registrationFee: 15,
-      prizePool: 3000
-    },
-    {
-      id: 7,
-      title: "Footsol",
-      date: "22nd March 2025",
-      time: "9:00 AM",
-      desc: "A football competition where participants have to play football.",
-      image: "https://assets.aceternity.com/demos/lana-del-rey.jpeg",
-      key: Events.FOOTSOL,
-      participationType: ParticipationType.GROUP,
-      eventType: EventType.NON_TECHNICAL,
-      registrationFee: 15,
-      prizePool: 3000
-    }
-  ];
-
-  const tshirtCard: {
-    title: string;
-    description: string;
-    src: string;
-  } = {
+  const tshirtCard = {
     title: "Get your event t-shirt",
     description:
       "Order your event t-shirt now and get it delivered to your doorstep.",
-    src: "/assets/tshirt.png"
+    src: "/assets/tshirt.png",
   };
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch("/api/events");
+        if (!response.ok) {
+          toast.error("Failed to fetch events");
+          throw new Error("Failed to fetch events");
+        }
+        const events = await response.json();
+
+        // Transform events to match the expected format
+        const transformedEvents = events.map((event: any) => ({
+          id: event.id,
+          name: event.name,
+          date: new Date(event.date).toISOString().split("T")[0],
+          time: event.time,
+          description: event.description,
+          imageUrl: event.imageUrl,
+          eventName: event.eventName,
+          participationType: event.participationType,
+          eventType: event.eventType,
+          registrationFee: 0, // Default to 0 if not specified
+          prizePool: event.prizePool || 0,
+        }));
+
+        setTechnicalEventsData(
+          transformedEvents.filter(
+            (event: { eventType: EventType }) =>
+              event.eventType === EventType.TECHNICAL
+          )
+        );
+
+        setNonTechnicalEventsData(
+          transformedEvents.filter(
+            (event: { eventType: EventType }) =>
+              event.eventType === EventType.NON_TECHNICAL ||
+              event.eventType === EventType.SPORTS
+          )
+        );
+      } catch (err) {
+        toast.error("Failed to fetch events");
+        console.error("Failed to fetch events:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEvents();
+
+    const fetchUser = async () => {
+      try {
+        const response = await fetch("/api/user/me", {
+          credentials: "include", // Add credentials to include cookies
+        });
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   return (
     <div>
@@ -278,7 +91,13 @@ const Home = () => {
           <div className="bg-neutral-800 rounded-xl shadow-md p-4 w-full max-h-[475px]">
             <h1 className="text-[1.125rem] font-[700]">Technical Events</h1>
             <div className="overflow-y-auto no-visible-scrollbar pr-2 max-h-[420px] scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-800">
-              <EventCard cardData={technicalEvents} />
+              {isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin h-8 w-8 border-2 border-green-500 border-t-transparent rounded-full"></div>
+                </div>
+              ) : (
+                <EventCard cardData={technicalEventsData} userId={user?.id} />
+              )}
             </div>
           </div>
           <div className="">
@@ -293,7 +112,13 @@ const Home = () => {
               Non-technical & Sports Events
             </h1>
             <div className="overflow-y-auto no-visible-scrollbar pr-2 max-h-[420px] scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-800">
-              <EventCard cardData={nonTechnicalEvents} />
+              {isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin h-8 w-8 border-2 border-green-500 border-t-transparent rounded-full"></div>
+                </div>
+              ) : (
+                <EventCard cardData={nonTechnicalEventsData} userId={user?.id} />
+              )}
             </div>
           </div>
           <div className="">

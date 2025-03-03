@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 
 // Simple type for token payload
 interface TokenPayload {
-  userId: string;
+  id: string;  // Changed from userId to id
   email: string;
   role: string;
 }

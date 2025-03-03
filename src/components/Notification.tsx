@@ -1,77 +1,94 @@
-import React from "react";
-import { FaTimes } from "react-icons/fa";
+import React from 'react';
+import { useNotifications } from '@/context/NotificationContext';
+import { toast } from "sonner";
 
-const Notification = ({ toggleModal }: { toggleModal: () => void }) => {
-  const notifications = [
-    {
-      id: 1,
-      title: "New Event Registration",
-      message: "You have successfully registered for Hackathon 2023",
-      time: "2 hours ago",
-      read: false,
-    },
-    {
-      id: 2,
-      title: "Event Reminder",
-      message: "Technical Workshop starts in 3 hours",
-      time: "3 hours ago",
-      read: true,
-    },
-    {
-      id: 3,
-      title: "Registration Deadline",
-      message: "Last day to register for Coding Competition",
-      time: "1 day ago",
-      read: true,
-    },
-  ];
+interface NotificationProps {
+  toggleModal: () => void;
+}
+
+const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
+  const { notifications, markAsRead } = useNotifications();
+
+  const handleTeamInvite = async (notificationId: number, accept: boolean) => {
+    try {
+      const response = await fetch('/api/notifications/respond', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          notificationId,
+          accept
+        }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process response');
+      }
+
+      // Mark notification as read after processing response
+      await markAsRead(notificationId);
+      
+      toast.success(accept ? 'Team invite accepted!' : 'Team invite rejected');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to process your response');
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  };
+
   return (
-    <>
-      <div
-        className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40"
-        onClick={toggleModal}
-      />
-      <div className="fixed top-24 right-2 left-2 md:left-auto md:right-8 md:w-96 bg-neutral-800 rounded-xl shadow-lg z-50 overflow-hidden">
-        <div className="p-4 border-b border-neutral-700 flex justify-between items-center">
-          <h2 className="text-xl font-bold">Notifications</h2>
-          <button
-            onClick={toggleModal}
-            className="hover:bg-neutral-700 p-2 rounded-full"
-          >
-            <FaTimes />
+    <div className="fixed inset-0 flex items-center justify-center z-[1000] bg-black/50">
+      <div className="bg-neutral-900 rounded-xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Notifications</h2>
+          <button onClick={toggleModal} className="text-neutral-400 hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
-        <div className="max-h-[70vh] overflow-y-auto">
-          {notifications.length === 0 ? (
-            <p className="p-4 text-center text-neutral-400">No notifications</p>
-          ) : (
-            notifications.map((notification) => (
-              <div
+
+        {notifications.length === 0 ? (
+          <p className="text-center text-neutral-400 py-4">No notifications</p>
+        ) : (
+          <div className="space-y-4">
+            {notifications.map((notification) => (
+              <div 
                 key={notification.id}
-                className={`p-4 border-b border-neutral-700 hover:bg-neutral-700 cursor-pointer ${
-                  !notification.read ? "bg-neutral-700 bg-opacity-40" : ""
-                }`}
+                className={`p-4 rounded-lg ${notification.isRead ? 'bg-neutral-800' : 'bg-neutral-800/50 border border-neutral-700'}`}
               >
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold">{notification.title}</h3>
-                  <span className="text-xs text-neutral-400">
-                    {notification.time}
-                  </span>
-                </div>
-                <p className="text-sm text-neutral-300 mt-1">
-                  {notification.message}
-                </p>
+                <h3 className="font-semibold mb-1">{notification.title}</h3>
+                <p className="text-sm text-neutral-300 mb-2">{notification.message}</p>
+                <p className="text-xs text-neutral-400 mb-2">{formatDate(notification.createdAt)}</p>
+                
+                {notification.type === 'TEAM_INVITE' && !notification.isRead && (
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => handleTeamInvite(notification.id, true)}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => handleTeamInvite(notification.id, false)}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                )}
               </div>
-            ))
-          )}
-        </div>
-        <div className="p-3 border-t border-neutral-700">
-          <button className="w-full text-center text-sm text-blue-400 hover:text-blue-300">
-            Mark all as read
-          </button>
-        </div>
+            ))}
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 

@@ -16,6 +16,8 @@ import { BiPurchaseTagAlt } from "react-icons/bi";
 import { usePathname } from "next/navigation";
 import UserProfileModal from "@/components/UserProfileModal";
 import { FaBell } from "react-icons/fa";
+import Notification from "@/components/Notification";
+import { useNotifications } from "@/context/NotificationContext";
 
 // Default user data
 const defaultUserInfo = {
@@ -26,7 +28,8 @@ const defaultUserInfo = {
   sic: "",
   year: "",
   imageUrl: "https://assets.aceternity.com/avatars/default.png",
-  eventParticipation: 0
+  eventParticipation: [] as { eventId: number; name: string; }[],
+  role: "ADMIN" as const,
 };
 
 export default function DashboardLayout({
@@ -42,6 +45,8 @@ export default function DashboardLayout({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { hasUnreadNotifications, notifications } = useNotifications();
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
@@ -138,30 +143,6 @@ export default function DashboardLayout({
       </div>
     );
   }
-
-  const notifications = [
-    {
-      id: 1,
-      title: "New Event Registration",
-      message: "You have successfully registered for Hackathon 2023",
-      time: "2 hours ago",
-      read: false
-    },
-    {
-      id: 2,
-      title: "Event Reminder",
-      message: "Technical Workshop starts in 3 hours",
-      time: "3 hours ago",
-      read: true
-    },
-    {
-      id: 3,
-      title: "Registration Deadline",
-      message: "Last day to register for Coding Competition",
-      time: "1 day ago",
-      read: true
-    }
-  ];
 
   const logoutHandler = async () => {
     try {
@@ -289,26 +270,16 @@ export default function DashboardLayout({
               onClick={toggleModal}
             >
               <FaBell className="text-2xl" />
-              {notifications.filter((n) => !n.read).length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                  {notifications.filter((n) => !n.read).length}
+              {hasUnreadNotifications && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs min-w-5 h-5 flex items-center justify-center rounded-full px-1">
+                  {unreadCount}
                 </span>
               )}
             </div>
           </div>
 
           {/* Notification Modal */}
-          {isModalOpen && (
-            <>
-              <div
-                className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40"
-                onClick={toggleModal}
-              />
-              <div className="fixed top-24 right-2 left-2 md:right-8 md:w-96 bg-neutral-800 rounded-xl shadow-lg z-50 overflow-hidden">
-                {/* ...existing code for notification modal... */}
-              </div>
-            </>
-          )}
+          {isModalOpen && <Notification toggleModal={toggleModal} />}
           {children}
         </div>
       </div>
@@ -316,7 +287,19 @@ export default function DashboardLayout({
       <UserProfileModal
         isOpen={isProfileModalOpen}
         onClose={toggleProfileModal}
-        userInfo={user}
+        userInfo={{
+          name: user?.name || "User",
+          email: user?.email || "user@example.com",
+          phone: user?.phone || "",
+          college: user?.college || "",
+          sic: user?.sic || "",
+          year: user?.year || "",
+          imageUrl:
+            user?.imageUrl ||
+            "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541",
+          eventParticipation: user?.eventParticipation || [] as { eventId: number; name: string; }[],
+          role: user?.role || "ADMIN"
+        }}
       />
     </div>
   );

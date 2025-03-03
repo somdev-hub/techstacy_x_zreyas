@@ -24,15 +24,14 @@ export async function GET() {
       }
     });
 
-    // Transform the data to match the expected format
     const transformedEvents = events.map(event => ({
       id: event.id,
-      title: event.name,
+      name: event.name,
       date: event.date.toISOString().split('T')[0],
       time: event.time,
-      desc: event.description,
-      image: event.imageUrl,
-      key: event.eventName,
+      description: event.description,
+      imageUrl: event.imageUrl,
+      eventName: event.eventName,
       participationType: event.participationType,
       eventType: event.eventType,
       registrationFee: 0, // Add this if you have it in your schema

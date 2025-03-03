@@ -1,0 +1,22 @@
+{
+  "name": "Techstacy X Zreyas",
+  "short_name": "Techstacy",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#171717",
+  "theme_color": "#171717",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "gcm_sender_id": "960042894300",
+  "scope": "/",
+  "permissions": [
+    "gcm",
+    "notifications"
+  ]
+}

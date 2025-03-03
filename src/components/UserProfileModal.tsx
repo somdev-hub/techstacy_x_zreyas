@@ -54,7 +54,7 @@ const UserProfileModal = ({
     control,
     handleSubmit,
     reset,
-    formState: { errors }
+    formState: { errors },
   } = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
@@ -63,8 +63,8 @@ const UserProfileModal = ({
       phone: initialUserInfo.phone,
       sic: initialUserInfo.sic,
       year: initialUserInfo.year as Year,
-      managedEvents: initialUserInfo.eventHeads?.map(eh => eh.name) || []
-    }
+      managedEvents: initialUserInfo.eventHeads?.map((eh) => eh.name) || [],
+    },
   });
 
   // Add click outside handler
@@ -90,7 +90,7 @@ const UserProfileModal = ({
       phone: initialUserInfo.phone,
       sic: initialUserInfo.sic,
       year: initialUserInfo.year as Year,
-      managedEvents: initialUserInfo.eventHeads?.map(eh => eh.name) || []
+      managedEvents: initialUserInfo.eventHeads?.map((eh) => eh.name) || [],
     });
     // Initialize selected events from userInfo
     if (initialUserInfo.eventHeads) {
@@ -147,7 +147,7 @@ const UserProfileModal = ({
         body: JSON.stringify({
           ...data,
           imageUrl: imagePreview || initialUserInfo.imageUrl,
-          managedEvents: selectedEvents
+          managedEvents: selectedEvents,
         }),
       });
 
@@ -266,7 +266,9 @@ const UserProfileModal = ({
                     )}
                   />
                   {errors.name && (
-                    <p className="text-red-400 text-xs mt-1">{errors.name.message}</p>
+                    <p className="text-red-400 text-xs mt-1">
+                      {errors.name.message}
+                    </p>
                   )}
                 </div>
               ) : (
@@ -277,7 +279,7 @@ const UserProfileModal = ({
             </div>
 
             {/* User Details Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-4">
               <div className="p-3 rounded-lg bg-neutral-700 bg-opacity-40">
                 <div className="flex items-center gap-2">
                   <FaEnvelope className="text-blue-400 text-lg flex-shrink-0" />
@@ -297,7 +299,9 @@ const UserProfileModal = ({
                           )}
                         />
                         {errors.email && (
-                          <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>
+                          <p className="text-red-400 text-xs mt-1">
+                            {errors.email.message}
+                          </p>
                         )}
                       </div>
                     ) : (
@@ -328,7 +332,9 @@ const UserProfileModal = ({
                           )}
                         />
                         {errors.phone && (
-                          <p className="text-red-400 text-xs mt-1">{errors.phone.message}</p>
+                          <p className="text-red-400 text-xs mt-1">
+                            {errors.phone.message}
+                          </p>
                         )}
                       </div>
                     ) : (
@@ -337,66 +343,75 @@ const UserProfileModal = ({
                   </div>
                 </div>
               </div>
-
-              <div className="p-3 rounded-lg bg-neutral-700 bg-opacity-40">
-                <div className="flex items-center gap-2">
-                  <FaIdCard className="text-blue-400 text-lg flex-shrink-0" />
-                  <div className="w-full">
-                    <p className="text-sm text-neutral-400">SIC</p>
-                    {isEditing ? (
-                      <div>
-                        <Controller
-                          name="sic"
-                          control={control}
-                          render={({ field }) => (
-                            <input
-                              {...field}
-                              type="text"
-                              className="w-full bg-neutral-600 rounded px-2 py-1 mt-1"
-                            />
+              <div className="flex gap-4 w-full">
+                <div className="p-3 rounded-lg bg-neutral-700 bg-opacity-40 flex-1">
+                  <div className="flex items-center gap-2">
+                    <FaIdCard className="text-blue-400 text-lg flex-shrink-0" />
+                    <div className="w-full">
+                      <p className="text-sm text-neutral-400">SIC</p>
+                      {isEditing ? (
+                        <div>
+                          <Controller
+                            name="sic"
+                            control={control}
+                            render={({ field }) => (
+                              <input
+                                {...field}
+                                type="text"
+                                className="w-full bg-neutral-600 rounded px-2 py-1 mt-1"
+                              />
+                            )}
+                          />
+                          {errors.sic && (
+                            <p className="text-red-400 text-xs mt-1">
+                              {errors.sic.message}
+                            </p>
                           )}
-                        />
-                        {errors.sic && (
-                          <p className="text-red-400 text-xs mt-1">{errors.sic.message}</p>
-                        )}
-                      </div>
-                    ) : (
-                      <p>{initialUserInfo?.sic || "No SIC provided"}</p>
-                    )}
+                        </div>
+                      ) : (
+                        <p>{initialUserInfo?.sic || "No SIC provided"}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="p-3 rounded-lg bg-neutral-700 bg-opacity-40">
-                <div className="flex items-center gap-2">
-                  <FaGraduationCap className="text-blue-400 text-lg flex-shrink-0" />
-                  <div className="w-full">
-                    <p className="text-sm text-neutral-400">Year</p>
-                    {isEditing ? (
-                      <div>
-                        <Controller
-                          name="year"
-                          control={control}
-                          render={({ field }) => (
-                            <select
-                              {...field}
-                              className="w-full bg-neutral-600 rounded px-2 py-1 mt-1"
-                            >
-                              <option value="">Select year</option>
-                              <option value="FIRST_YEAR">1st year</option>
-                              <option value="SECOND_YEAR">2nd year</option>
-                              <option value="THIRD_YEAR">3rd year</option>
-                              <option value="FOURTH_YEAR">4th year</option>
-                            </select>
+                <div className="p-3 rounded-lg bg-neutral-700 bg-opacity-40 flex-1">
+                  <div className="flex items-center gap-2">
+                    <FaGraduationCap className="text-blue-400 text-lg flex-shrink-0" />
+                    <div className="w-full">
+                      <p className="text-sm text-neutral-400">Year</p>
+                      {isEditing ? (
+                        <div>
+                          <Controller
+                            name="year"
+                            control={control}
+                            render={({ field }) => (
+                              <select
+                                {...field}
+                                className="w-full bg-neutral-600 rounded px-2 py-1 mt-1"
+                              >
+                                <option value="">Select year</option>
+                                <option value="FIRST_YEAR">1st year</option>
+                                <option value="SECOND_YEAR">2nd year</option>
+                                <option value="THIRD_YEAR">3rd year</option>
+                                <option value="FOURTH_YEAR">4th year</option>
+                              </select>
+                            )}
+                          />
+                          {errors.year && (
+                            <p className="text-red-400 text-xs mt-1">
+                              {errors.year.message}
+                            </p>
                           )}
-                        />
-                        {errors.year && (
-                          <p className="text-red-400 text-xs mt-1">{errors.year.message}</p>
-                        )}
-                      </div>
-                    ) : (
-                      <p>{initialUserInfo?.year?.replace("_", " ")?.toLowerCase()}</p>
-                    )}
+                        </div>
+                      ) : (
+                        <p>
+                          {initialUserInfo?.year
+                            ?.replace("_", " ")
+                            ?.toLowerCase()}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -439,7 +454,9 @@ const UserProfileModal = ({
                             className="w-full bg-neutral-600 rounded px-2 py-1 mt-1"
                           />
                           {errors.password && (
-                            <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>
+                            <p className="text-red-400 text-xs mt-1">
+                              {errors.password.message}
+                            </p>
                           )}
                         </div>
                       )}
@@ -559,8 +576,8 @@ const UserProfileModal = ({
                   initialUserInfo.eventParticipation.length > 0 ? (
                   <div className="space-y-2">
                     <p className="font-medium mb-2">
-                      Participating in {initialUserInfo.eventParticipation.length}{" "}
-                      events:
+                      Participating in{" "}
+                      {initialUserInfo.eventParticipation.length} events:
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {initialUserInfo.eventParticipation.map((event) => (

@@ -164,6 +164,7 @@ export default function SuperAdminLayout({
         }
 
         const userData = await response.json();
+        console.log("User data:", userData);
 
         // Check if user is SUPERADMIN
         if (userData.role === "ADMIN") {
@@ -268,11 +269,14 @@ export default function SuperAdminLayout({
           <div onClick={toggleProfileModal}>
             <SidebarLink
               link={{
-                label: defaultUserInfo.name,
+                label: user?.name,
                 href: "#",
                 icon: (
                   <Image
-                    src={defaultUserInfo.imageUrl}
+                    src={
+                      user?.imageUrl ||
+                      "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541"
+                    }
                     className="h-8 w-8 flex-shrink-0 rounded-full"
                     width={50}
                     height={50}
@@ -332,8 +336,16 @@ export default function SuperAdminLayout({
         isOpen={isProfileModalOpen}
         onClose={toggleProfileModal}
         userInfo={{
-          ...user,
-          eventParticipation: 0 // Since superadmin doesn't participate in events
+          name: user?.name || "User",
+          email: user?.email || "user@example.com",
+          phone: user?.phone || "",
+          college: user?.college || "",
+          sic: user?.sic || "",
+          year: user?.year || "",
+          imageUrl:
+            user?.imageUrl ||
+            "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541",
+          eventParticipation: user?.eventParticipation || 0,
         }}
       />
     </div>

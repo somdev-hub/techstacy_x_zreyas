@@ -20,7 +20,6 @@ interface AdminEventCardProps {
     key: Events;
     participationType: ParticipationType;
     eventType: EventType;
-    registrationFee: number;
     prizePool: number;
     venue: string;
   }[];
@@ -42,13 +41,27 @@ const eventFormSchema = z.object({
   participationType: z.nativeEnum(ParticipationType, {
     required_error: "Please select a participation type",
   }),
-  image: z.any().optional()
+  image: z.any().optional(),
 });
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
 
 export function AdminEventCard({ cardData }: AdminEventCardProps) {
-  const [active, setActive] = useState<any | null>(null);
+  type CardType = {
+    id: number;
+    description: string;
+    title: string;
+    src: string;
+    participationType: ParticipationType;
+    eventType: EventType;
+    prizePool: number;
+    date: string;
+    time: string;
+    venue: string;
+    eventName: Events;
+  };
+  
+  const [active, setActive] = useState<CardType | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -58,75 +71,78 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
     register,
     handleSubmit,
     formState: { errors },
-    reset,
-    setValue
+    setValue,
   } = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
   });
 
   const cards = cardData.map((event) => ({
-    id: event.id,
-    description: event.desc,
-    title: event.title,
-    src: event.image,
-    participationType: event.participationType,
-    eventType: event.eventType,
-    registrationFee: event.registrationFee,
-    prizePool: event.prizePool,
-    date: event.date,
-    time: event.time,
-    venue: event.venue,
-    eventName: event.key
+    id: event?.id,
+    description: event?.desc,
+    title: event?.title,
+    src: event?.image,
+    participationType: event?.participationType,
+    eventType: event?.eventType,
+    prizePool: event?.prizePool,
+    date: event?.date,
+    time: event?.time,
+    venue: event?.venue,
+    eventName: event?.key,
   }));
 
   useEffect(() => {
     if (active && isEditing) {
-      setValue('name', active.title);
-      setValue('eventName', active.eventName);
-      setValue('prizePool', active.prizePool.toString());
-      setValue('description', active.description);
-      setValue('venue', active.venue);
-      setValue('date', active.date);
-      setValue('time', active.time);
-      setValue('eventType', active.eventType);
-      setValue('participationType', active.participationType);
+      setValue("name", active.title);
+      setValue("eventName", active.eventName);
+      setValue("prizePool", active.prizePool.toString());
+      setValue("description", active.description);
+      setValue("venue", active.venue);
+      setValue("date", active.date);
+      setValue("time", active.time);
+      setValue("eventType", active.eventType);
+      setValue("participationType", active.participationType);
     }
   }, [active, isEditing, setValue]);
 
   const onSubmit = async (data: EventFormValues) => {
+    if (!active) return;
+    
     try {
       setIsSubmitting(true);
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
-        if (key === 'image' && value?.[0]) {
-          formData.append('image', value[0]);
+        if (key === "image" && value?.[0]) {
+          formData.append("imageUrl", value[0]); // Changed from 'image' to 'imageUrl' to match schema
         } else if (value !== undefined) {
           formData.append(key, value.toString());
         }
       });
-      formData.append('id', active.id.toString());
+      formData.append("id", active.id.toString());
 
-      const response = await fetch('/api/events/' + active.id, {
-        method: 'PUT',
+      const response = await fetch(`/api/events/${active.id}`, {
+        method: "PUT",
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update event');
+        throw new Error("Failed to update event");
       }
 
-      toast.success('Event updated successfully');
+      toast.success("Event updated successfully");
       setIsEditing(false);
-      // Here you might want to refresh the events data
+      // Here you might want to refresh the events data by calling window.location.reload()
+      window.location.reload();
     } catch (error) {
-      console.error('Failed to update event:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update event');
+      console.error("Failed to update event:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update event"
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  useOutsideClick(ref, () => {
+  useOutsideClick(ref as React.RefObject<HTMLDivElement>, () => {
     setActive(null);
     setIsEditing(false);
   });
@@ -166,7 +182,9 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
               ))}
             </select>
             {errors.eventName && (
-              <p className="text-red-500 text-sm mt-1">{errors.eventName.message}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.eventName.message}
+              </p>
             )}
           </div>
         </div>
@@ -180,7 +198,9 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
               className="bg-neutral-700 rounded-md px-3 py-2 h-10 w-full"
             />
             {errors.prizePool && (
-              <p className="text-red-500 text-sm mt-1">{errors.prizePool.message}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.prizePool.message}
+              </p>
             )}
           </div>
           <div>
@@ -191,7 +211,9 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
               className="bg-neutral-700 rounded-md px-3 py-2 h-10 w-full"
             />
             {errors.venue && (
-              <p className="text-red-500 text-sm mt-1">{errors.venue.message}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.venue.message}
+              </p>
             )}
           </div>
         </div>
@@ -202,7 +224,9 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
           className="bg-neutral-700 rounded-md px-3 py-2 w-full min-h-[100px]"
         />
         {errors.description && (
-          <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>
+          <p className="text-red-500 text-sm mt-1">
+            {errors.description.message}
+          </p>
         )}
 
         <div className="grid grid-cols-2 gap-4">
@@ -242,7 +266,9 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
               ))}
             </select>
             {errors.eventType && (
-              <p className="text-red-500 text-sm mt-1">{errors.eventType.message}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.eventType.message}
+              </p>
             )}
           </div>
           <div>
@@ -258,7 +284,9 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
               ))}
             </select>
             {errors.participationType && (
-              <p className="text-red-500 text-sm mt-1">{errors.participationType.message}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.participationType.message}
+              </p>
             )}
           </div>
         </div>
@@ -294,7 +322,7 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
     );
   };
 
-  const renderEventDetails = (activeCard: typeof cards[0]) => {
+  const renderEventDetails = (activeCard: (typeof cards)[0]) => {
     return (
       <div>
         <p className="mb-2">
@@ -311,9 +339,6 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
         </p>
         <p className="mb-2">
           <strong>Participation:</strong> {activeCard.participationType}
-        </p>
-        <p className="mb-2">
-          <strong>Registration Fee:</strong> ₹{activeCard.registrationFee}
         </p>
         <p className="mb-2">
           <strong>Prize Pool:</strong> ₹{activeCard.prizePool}
@@ -346,8 +371,8 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
               exit={{
                 opacity: 0,
                 transition: {
-                  duration: 0.05
-                }
+                  duration: 0.05,
+                },
               }}
               className="flex absolute top-2 right-2 lg:hidden items-center justify-center bg-neutral-900 rounded-full h-6 w-6"
               onClick={() => {
@@ -362,13 +387,16 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
               ref={ref}
               className="w-full max-w-[600px] h-full md:h-[90vh] md:max-h-[90%] flex flex-col bg-neutral-900 sm:rounded-3xl overflow-auto no-visible-scrollbar"
             >
-              <motion.div layoutId={`image-${active.title}-${id}`} className="relative">
+              <motion.div
+                layoutId={`image-${active.title}-${id}`}
+                className="relative"
+              >
                 <Image
                   priority
                   width={200}
                   height={200}
-                  src={active.src}
-                  alt={active.title}
+                  src={active.src || '/assets/tshirt.png'} // Provide default image
+                  alt={active.title || 'Event Image'}
                   className="w-full h-80 lg:h-80 sm:rounded-tr-lg sm:rounded-tl-lg object-cover object-top"
                 />
                 {!isEditing && (
@@ -398,10 +426,10 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
         ) : null}
       </AnimatePresence>
       <ul className="mx-auto w-full gap-4">
-        {cards.map((card) => (
+        {cards.map((card, index) => (
           <motion.div
-            layoutId={`card-${card.title}-${id}`}
-            key={`card-${card.title}-${id}`}
+            layoutId={`card-${card?.title}-${id}`}
+            key={index}
             onClick={() => {
               setActive(card);
               setIsEditing(false);
@@ -410,35 +438,35 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
           >
             <div className="flex gap-4 flex-col md:flex-row md:w-[80%]">
               <motion.div
-                layoutId={`image-${card.title}-${id}`}
+                layoutId={`image-${card?.title}-${id}`}
                 className="flex items-center justify-center"
               >
                 <Image
                   width={100}
                   height={100}
-                  src={card.src}
-                  alt={card.title}
+                  src={card?.src || '/assets/tshirt.png'} // Provide default image
+                  alt={card?.title || 'Event Image'}
                   className="h-40 w-40 md:h-14 md:w-14 rounded-lg object-cover object-top"
                 />
               </motion.div>
               <div>
                 <motion.h3
-                  layoutId={`title-${card.title}-${id}`}
+                  layoutId={`title-${card?.title}-${id}`}
                   className="font-medium text-neutral-200 text-center md:text-left"
                 >
-                  {card.title}
+                  {card?.title}
                 </motion.h3>
                 <motion.p
-                  layoutId={`description-${card.description}-${id}`}
+                  layoutId={`description-${card?.description}-${id}`}
                   className="text-neutral-400 text-center md:text-left"
                 >
-                  {card.description}
+                  {card?.description}
                 </motion.p>
               </div>
             </div>
             <div className="flex gap-2 mt-4 md:mt-0">
               <motion.button
-                layoutId={`edit-${card.title}-${id}`}
+                layoutId={`edit-${card?.title}-${id}`}
                 className="px-4 py-2 w-32 text-sm rounded-full font-bold bg-blue-600 text-white hover:bg-blue-700"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -460,16 +488,16 @@ export const CloseIcon = () => {
   return (
     <motion.svg
       initial={{
-        opacity: 0
+        opacity: 0,
       }}
       animate={{
-        opacity: 1
+        opacity: 1,
       }}
       exit={{
         opacity: 0,
         transition: {
-          duration: 0.05
-        }
+          duration: 0.05,
+        },
       }}
       xmlns="http://www.w3.org/2000/svg"
       width="24"

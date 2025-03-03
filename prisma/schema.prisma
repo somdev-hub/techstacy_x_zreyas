@@ -64,6 +64,12 @@ enum Role {
   USER
 }
 
+enum NotificationType {
+  TEAM_INVITE
+  EVENT_REMINDER
+  GENERAL
+}
+
 model User {
   id                 Int                @id @default(autoincrement())
   name               String
@@ -82,6 +88,8 @@ model User {
   eventParticipants  EventParticipant[]
   eventHeads         EventHead[]
   eventAttendances   EventAttendance[]
+  fcmToken           String?
+  notifications      Notification[]
 }
 
 model RefreshToken {
@@ -130,10 +138,34 @@ model EventAttendance {
 }
 
 model EventParticipant {
-  id        Int      @id @default(autoincrement())
-  eventId   Int
-  userId    Int
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id                Int                @id @default(autoincrement())
+  eventId           Int
+  userId            Int
+  event             Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime           @default(now())
+  teamLeader        Boolean            @default(true)
+  
+  updatedAt         DateTime           @default(now())
+  isConfirmed       Boolean            @default(false)
+  isAttended        Boolean            @default(false)  // Moved from EventQR
+  qrCode            String?            // Moved from EventQR
+  mainParticipantId Int?               // ID of the main participant who registered the team
+  mainParticipant   EventParticipant?  @relation("TeamMembers", fields: [mainParticipantId], references: [id], onDelete: SetNull)
+  otherParticipants EventParticipant[] @relation("TeamMembers")
+}
+
+// Remove EventQR model since we merged it into EventParticipant
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  message     String           @db.Text
+  type        NotificationType
+  metadata    Json?
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }

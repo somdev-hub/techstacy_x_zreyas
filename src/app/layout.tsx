@@ -7,6 +7,8 @@ import { Modal } from "@/components/Modal";
 import { LoginModalProvider } from "@/context/LoginModalContext";
 import { LoginModal } from "@/components/LoginModal";
 import { Toaster } from "@/components/ui/sonner";
+import { UserProvider } from "@/context/UserContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,8 +21,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Zreyas X Techstacy",
-  description: "Zreyas X Techstacy 2024"
+  title: "Techstacy X Zreyas",
+  description: "The annual tech fest of Silicon Institute of Technology, Sambalpur",
+  manifest: "/manifest.json",
+  themeColor: "#171717",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
 };
 
 export default function RootLayout({
@@ -30,16 +39,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Techstacy X Zreyas" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased `}
       >
-        <LoginModalProvider>
-          <ModalProvider>
-            {children}
-            <Modal />
-            <LoginModal />
-          </ModalProvider>
-        </LoginModalProvider>
+        <UserProvider>
+          <NotificationProvider>
+            <LoginModalProvider>
+              <ModalProvider>
+                {children}
+                <Modal />
+                <LoginModal />
+              </ModalProvider>
+            </LoginModalProvider>
+          </NotificationProvider>
+        </UserProvider>
         <Toaster />
       </body>
     </html>

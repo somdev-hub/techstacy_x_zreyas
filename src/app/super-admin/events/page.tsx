@@ -5,17 +5,18 @@ import { Events, ParticipationType, EventType } from "@prisma/client";
 
 interface Event {
   id: number;
-  title: string;
-  date: string;
-  time: string;
-  desc: string;
-  image: string;
-  key: Events;
-  participationType: ParticipationType;
+  name: string;
+  eventName: Events;
   eventType: EventType;
-  registrationFee: number;
-  prizePool: number;
+  description: string;
+  imageUrl: string;
+  date: string; // Will be converted from DateTime
+  time: string;
   venue: string;
+  participationType: ParticipationType;
+  prizePool: number;
+  createdAt: string; // Will be converted from DateTime
+  updatedAt: string; // Will be converted from DateTime
 }
 
 const EventsPage = () => {
@@ -31,6 +32,8 @@ const EventsPage = () => {
           throw new Error("Failed to fetch events");
         }
         const data = await response.json();
+        // console.log(data);
+        
         setEvents(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch events");
@@ -58,11 +61,26 @@ const EventsPage = () => {
     );
   }
 
+  const transformedEvents = events.map(event => ({
+    id: event.id,
+    title: event.name,
+    desc: event.description,
+    image: event.imageUrl,
+    date: new Date(event.date).toLocaleDateString(),
+    time: event.time,
+    key: event.eventName,
+    participationType: event.participationType,
+    eventType: event.eventType,
+    registrationFee: 0, // This field is not in the schema
+    prizePool: event.prizePool,
+    venue: event.venue
+  }));
+
   return (
     <div className="py-6">
       <h1 className="text-2xl font-bold mb-6">Manage Events</h1>
       <div className="bg-neutral-800 rounded-xl p-4">
-        <AdminEventCard cardData={events} />
+        <AdminEventCard cardData={transformedEvents} />
       </div>
     </div>
   );

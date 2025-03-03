@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE `eventparticipant` ADD COLUMN `isAttended` BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN `qrCode` VARCHAR(191) NULL,
+    ADD COLUMN `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);

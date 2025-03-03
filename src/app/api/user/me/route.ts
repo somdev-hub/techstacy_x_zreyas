@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
 
       // Verify decoded token has all required fields
       if (!decoded.userId || !decoded.email || !decoded.role) {
-        return NextResponse.json({ error: "Invalid token payload" }, { status: 401 });
+        return NextResponse.json(
+          { error: "Invalid token payload" },
+          { status: 401 }
+        );
       }
 
       // Get user data including role
@@ -33,8 +36,10 @@ export async function GET(request: NextRequest) {
           college: true,
           year: true,
           imageUrl: true,
-          eventParticipation: true
-        }
+          sic: true,
+          phone: true,
+          eventParticipation: true,
+        },
       });
 
       if (!user) {

@@ -4,16 +4,17 @@ import React, { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useOutsideClick } from "@/hooks/use-outside-click";
 import { Events, ParticipationType, EventType } from "@prisma/client";
+import { toast } from "sonner";
 
 interface EventCardProps {
   cardData: {
     id: number;
-    title: string;
+    name: string;
     date: string;
     time: string;
-    desc: string;
-    image: string;
-    key: Events;
+    description: string;
+    imageUrl: string;
+    eventName: Events;
     participationType: ParticipationType;
     eventType: EventType;
     registrationFee: number;
@@ -39,59 +40,41 @@ export function EventCard({ cardData }: EventCardProps) {
     UserSearchResult[]
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registeredEvents, setRegisteredEvents] = useState<number[]>([]);
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
 
   // Create cards with event data - moved up to fix reference before definition
   const cards = cardData.map((event) => ({
-    description: event.desc,
-    title: event.title,
-    src: event.image,
+    description: event.description,
+    title: event.name,
+    src: event.imageUrl,
     ctaText: "Register",
     ctaLink: "#",
     participationType: event.participationType,
     eventType: event.eventType,
-    registrationFee: event.registrationFee,
+    registrationFee: event.registrationFee || 0,
     prizePool: event.prizePool,
     date: event.date,
     time: event.time,
-    event: event // Store the full event data
+    event: event, // Store the full event data
   }));
+
+  const [eventParticipationData, setEventParticipationData] = useState({
+    eventId: "",
+    totalParticipants: 0,
+    otherParticipants: [] as { userId: string; isConfirmed: boolean }[]
+  });
 
   // Mock search function - in a real app, this would call your API
   const searchUsers = async (query: string) => {
     setIsLoading(true);
-    // Simulate API delay
-    // await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // // Mock search results
-    // const mockResults: UserSearchResult[] = [
-    //   { id: "1", name: "John Doe", email: "john@example.com", sic: "SIC001" },
-    //   { id: "2", name: "Jane Smith", email: "jane@example.com", sic: "SIC002" },
-    //   { id: "3", name: "Bob Johnson", email: "bob@example.com", sic: "SIC003" },
-    //   {
-    //     id: "4",
-    //     name: "Alice Williams",
-    //     email: "alice@example.com",
-    //     sic: "SIC004"
-    //   },
-    //   {
-    //     id: "5",
-    //     name: "Charlie Brown",
-    //     email: "charlie@example.com",
-    //     sic: "SIC005"
-    //   }
-    // ].filter(
-    //   (user) =>
-    //     user.name.toLowerCase().includes(query.toLowerCase()) ||
-    //     user.sic?.toLowerCase().includes(query.toLowerCase())
-    // );
-
-    // setSearchResults(mockResults);
-    // setIsLoading(false);
 
     try {
-      const response = await fetch(`/api/user/search?query=${query}`);
+      const response = await fetch(`/api/user/search?query=${query}`, {
+        credentials: 'include'
+      });
       const data = await response.json();
       setSearchResults(data);
     } catch (error) {
@@ -103,6 +86,11 @@ export function EventCard({ cardData }: EventCardProps) {
 
   const handleRegisterClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Don't do anything if user is already registered
+    if (active && typeof active === "object" && registeredEvents.includes(active.event.id)) {
+      return;
+    }
 
     // If it's a solo event, register immediately
     if (
@@ -120,9 +108,39 @@ export function EventCard({ cardData }: EventCardProps) {
     }
   };
 
-  const handleSoloRegistration = () => {
-    // In a real app, you would call your API to register the user
-    alert("You have been registered successfully!");
+  const handleSoloRegistration = async () => {
+    if (active && typeof active === "object") {
+      setIsRegistering(true);
+      try {
+        const response = await fetch('/api/events/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            eventId: Number(active.event.id),
+            otherParticipants: []
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Registration failed');
+        }
+
+        const result = await response.json();
+        console.log('Registration successful:', result);
+        toast.success("You have been registered successfully!");
+        setRegisteredEvents([...registeredEvents, active.event.id]);
+        resetForm();
+      } catch (error) {
+        console.error('Registration error:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to register for event');
+      } finally {
+        setIsRegistering(false);
+      }
+    }
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,42 +172,47 @@ export function EventCard({ cardData }: EventCardProps) {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (active && typeof active === "object") {
-      // Validate based on participation type
-      if (
-        active.participationType === ParticipationType.DUO &&
-        selectedParticipants.length !== 2
-      ) {
-        alert("Please select exactly 2 participants for duo events.");
-        return;
-      } else if (
-        active.participationType === ParticipationType.QUAD &&
-        selectedParticipants.length !== 4
-      ) {
-        alert("Please select exactly 4 participants for quad events.");
-        return;
-      } else if (
-        active.participationType === ParticipationType.QUINTET &&
-        selectedParticipants.length !== 5
-      ) {
-        alert("Please select exactly 5 participants for quintet events.");
-        return;
-      } else if (
-        active.participationType === ParticipationType.GROUP &&
-        selectedParticipants.length < 2
-      ) {
-        alert("Please select at least 2 participants for group events.");
-        return;
+      // ...existing validation code...
+
+      setIsRegistering(true);
+      try {
+        const registrationData = {
+          eventId: Number(active.event.id),
+          otherParticipants: selectedParticipants.map(participant => ({
+            userId: Number(participant.id)
+          }))
+        };
+
+        const response = await fetch('/api/events/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(registrationData)
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Registration failed');
+        }
+
+        const result = await response.json();
+        console.log('Team registration successful:', result);
+        toast.success("Team registered successfully! Other participants will need to confirm their participation.");
+        setRegisteredEvents([...registeredEvents, active.event.id]);
+        resetForm();
+      } catch (error) {
+        console.error('Registration error:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to register team');
+      } finally {
+        setIsRegistering(false);
       }
     }
-
-    // In a real app, you would call your API to register the team
-    console.log("Registering team:", selectedParticipants);
-    alert("Team registered successfully!");
-    resetForm();
   };
 
   const resetForm = () => {
@@ -197,6 +220,11 @@ export function EventCard({ cardData }: EventCardProps) {
     setSearchQuery("");
     setSearchResults([]);
     setSelectedParticipants([]);
+    setEventParticipationData({
+      eventId: "",
+      totalParticipants: 0,
+      otherParticipants: []
+    });
   };
 
   useEffect(() => {
@@ -205,6 +233,28 @@ export function EventCard({ cardData }: EventCardProps) {
       resetForm();
     }
   }, [active]);
+
+  useEffect(() => {
+    const fetchRegisteredEvents = async () => {
+      try {
+        const response = await fetch('/api/events/user-events', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          // Extract event IDs from registered events
+          const registeredIds = data.map((event: any) => event.id);
+          setRegisteredEvents(registeredIds);
+        } else {
+          console.error('Failed to fetch registered events');
+        }
+      } catch (error) {
+        console.error('Error fetching registered events:', error);
+      }
+    };
+
+    fetchRegisteredEvents();
+  }, []);
 
   useOutsideClick(ref as React.RefObject<HTMLDivElement>, () => {
     setActive(null);
@@ -240,20 +290,19 @@ export function EventCard({ cardData }: EventCardProps) {
   const getParticipationTypeRequirement = (type: ParticipationType) => {
     switch (type) {
       case ParticipationType.DUO:
-        return "2 participants";
+        return "1 teammate";
       case ParticipationType.QUAD:
-        return "4 participants";
+        return "3 teammates";
       case ParticipationType.QUINTET:
-        return "5 participants";
+        return "4 teammates";
       case ParticipationType.GROUP:
-        return "2 or more participants";
+        return "at least 1 teammate";
       default:
         return "";
     }
   };
 
   const renderRegistrationForm = (activeCard: (typeof cards)[0]) => {
-    // Don't show form for solo events
     if (activeCard.participationType === ParticipationType.SOLO) {
       return null;
     }
@@ -324,14 +373,14 @@ export function EventCard({ cardData }: EventCardProps) {
         {selectedParticipants.length > 0 && (
           <div className="mb-4">
             <h5 className="text-sm font-medium text-neutral-300 mb-2">
-              Selected Participants ({selectedParticipants.length}/
+              Selected Teammates ({selectedParticipants.length}/
               {activeCard.participationType === ParticipationType.GROUP
-                ? "2+"
+                ? "1+"
                 : activeCard.participationType === ParticipationType.DUO
-                ? "2"
+                ? "1"
                 : activeCard.participationType === ParticipationType.QUAD
-                ? "4"
-                : "5"}
+                ? "3"
+                : "4"}
               )
             </h5>
             <div className="space-y-2">
@@ -373,14 +422,27 @@ export function EventCard({ cardData }: EventCardProps) {
         <div className="flex gap-3">
           <button
             type="submit"
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+            disabled={isRegistering}
+            className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 ${
+              isRegistering 
+                ? 'bg-green-600/50 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700'
+            } text-white`}
           >
-            Register Team
+            {isRegistering ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                Registering...
+              </>
+            ) : (
+              'Register Team'
+            )}
           </button>
           <button
             type="button"
             onClick={resetForm}
-            className="bg-neutral-700 hover:bg-neutral-600 text-white px-4 py-2 rounded-md text-sm font-medium"
+            disabled={isRegistering}
+            className="bg-neutral-700 hover:bg-neutral-600 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -412,8 +474,8 @@ export function EventCard({ cardData }: EventCardProps) {
               exit={{
                 opacity: 0,
                 transition: {
-                  duration: 0.05
-                }
+                  duration: 0.05,
+                },
               }}
               className="flex absolute top-2 right-2 lg:hidden items-center justify-center bg-neutral-900 rounded-full h-6 w-6"
               onClick={() => {
@@ -456,11 +518,11 @@ export function EventCard({ cardData }: EventCardProps) {
                     </motion.p>
                   </div>
 
-                  {!showForm && (
+                  {!showForm && !registeredEvents.includes(active.event.id) && (
                     <motion.button
                       layoutId={`button-${active.title}-${id}`}
                       onClick={handleRegisterClick}
-                      className="px-4 py-3 text-sm rounded-full font-bold bg-green-500 text-white hover:bg-green-600 whitespace-nowrap"
+                      className="px-4 py-3 text-sm rounded-full font-bold whitespace-nowrap bg-green-500 text-white hover:bg-green-600"
                     >
                       {active.participationType === ParticipationType.SOLO
                         ? "Register Now"
@@ -468,6 +530,7 @@ export function EventCard({ cardData }: EventCardProps) {
                     </motion.button>
                   )}
                 </div>
+
                 <div className="pt-4 relative px-4 pb-6">
                   <motion.div
                     layout
@@ -477,8 +540,14 @@ export function EventCard({ cardData }: EventCardProps) {
                     className="text-neutral-400 text-xs md:text-sm lg:text-base max-h-[60vh] overflow-auto dark:text-neutral-400 no-visible-scrollbar"
                   >
                     {renderEventDetails(active)}
+                    
+                    {registeredEvents.includes(active.event.id) && (
+                      <div className="mt-4 p-4 bg-neutral-800 rounded-lg">
+                        <p className="text-yellow-400">You are already registered for this event.</p>
+                      </div>
+                    )}
 
-                    {showForm && renderRegistrationForm(active)}
+                    {showForm && !registeredEvents.includes(active.event.id) && renderRegistrationForm(active)}
                   </motion.div>
                 </div>
               </div>
@@ -495,7 +564,11 @@ export function EventCard({ cardData }: EventCardProps) {
               setActive(card);
               resetForm();
             }}
-            className="py-4 md:p-4 flex flex-col md:flex-row justify-between items-center hover:bg-neutral-800 rounded-xl cursor-pointer"
+            className={`py-4 md:p-4 flex flex-col md:flex-row justify-between items-center rounded-xl ${
+              registeredEvents.includes(card.event.id) 
+                ? 'bg-neutral-800/50' 
+                : 'hover:bg-neutral-800'
+            } cursor-pointer`}
           >
             <div className="flex gap-4 flex-col md:flex-row md:w-[80%]">
               <motion.div
@@ -527,14 +600,23 @@ export function EventCard({ cardData }: EventCardProps) {
             </div>
             <motion.button
               layoutId={`button-${card.title}-${id}`}
-              className="px-4 py-2 w-32 text-sm rounded-full font-bold bg-gray-100 hover:bg-green-500 hover:text-white text-black mt-4 md:mt-0"
+              className={`px-4 py-2 w-32 text-sm rounded-full font-bold mt-4 md:mt-0 ${
+                registeredEvents.includes(card.event.id)
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gray-100 hover:bg-green-500 hover:text-white'
+              } text-black`}
               onClick={(e) => {
                 e.stopPropagation();
-                setActive(card);
-                resetForm();
+                if (!registeredEvents.includes(card.event.id)) {
+                  setActive(card);
+                  resetForm();
+                }
               }}
+              disabled={registeredEvents.includes(card.event.id)}
             >
-              {card.participationType === ParticipationType.SOLO
+              {registeredEvents.includes(card.event.id)
+                ? "Registered"
+                : card.participationType === ParticipationType.SOLO
                 ? "Register"
                 : "Create Team"}
             </motion.button>
@@ -549,16 +631,16 @@ export const CloseIcon = () => {
   return (
     <motion.svg
       initial={{
-        opacity: 0
+        opacity: 0,
       }}
       animate={{
-        opacity: 1
+        opacity: 1,
       }}
       exit={{
         opacity: 0,
         transition: {
-          duration: 0.05
-        }
+          duration: 0.05,
+        },
       }}
       xmlns="http://www.w3.org/2000/svg"
       width="24"

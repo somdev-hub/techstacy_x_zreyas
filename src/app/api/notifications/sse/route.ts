@@ -237,7 +237,7 @@ export function getConnectionStats() {
   };
 }
 
-export function sendUserNotification(userId: number, data: NotificationData) {
+function sendUserNotification(userId: number, data: NotificationData) {
   const userControllers = userConnections.get(userId);
   if (!userControllers) return;
 

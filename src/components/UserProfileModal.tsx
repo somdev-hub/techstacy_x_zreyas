@@ -12,29 +12,30 @@ import {
   FaTimes as FaCancel,
   FaEdit,
   FaChevronDown,
+  FaSpinner,
 } from "react-icons/fa";
-import { Events, Year } from "@prisma/client";
+import { Events } from "@prisma/client";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { userFormSchema, type UserFormData } from "@/lib/schemas";
 import { toast } from "sonner";
+import { EventAssociation, Year } from "@/context/UserContext";
 
 interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   userInfo: {
-    id?: number;
+    id: number;
     name: string;
     email: string;
-    phone: string;
+    phone: string | null;
     college: string;
     sic: string;
-    year: string;
-    imageUrl: string;
-    role: string;
-    eventParticipation?: { eventId: number; name: string }[]; // Updated to include event name
-    eventHeads?: { eventId: number; name: string }[]; // Added for admin event heads
-    password?: string;
+    year: Year;
+    imageUrl: string | null;
+    role: "SUPERADMIN" | "ADMIN" | "USER";
+    eventParticipants?: EventAssociation[];
+    eventHeads?: EventAssociation[];
   };
 }
 
@@ -46,9 +47,12 @@ const UserProfileModal = ({
   const [isEditing, setIsEditing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
+  const [selectedEvents, setSelectedEvents] = useState<Events[]>([]);
   const [isEventDropdownOpen, setIsEventDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     control,
@@ -58,12 +62,13 @@ const UserProfileModal = ({
   } = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
-      name: initialUserInfo.name,
-      email: initialUserInfo.email,
-      phone: initialUserInfo.phone,
-      sic: initialUserInfo.sic,
-      year: initialUserInfo.year as Year,
-      managedEvents: initialUserInfo.eventHeads?.map((eh) => eh.name) || [],
+      name: initialUserInfo.name || "",
+      email: initialUserInfo.email || "",
+      phone: initialUserInfo.phone || "",
+      sic: initialUserInfo.sic || "",
+      year: initialUserInfo.year,
+      managedEvents: initialUserInfo.eventHeads?.map((eh) => eh.event.eventName) || [],
+      password: "",
     },
   });
 
@@ -85,16 +90,19 @@ const UserProfileModal = ({
   // Update local state when props change
   useEffect(() => {
     reset({
-      name: initialUserInfo.name,
-      email: initialUserInfo.email,
-      phone: initialUserInfo.phone,
-      sic: initialUserInfo.sic,
-      year: initialUserInfo.year as Year,
-      managedEvents: initialUserInfo.eventHeads?.map((eh) => eh.name) || [],
+      name: initialUserInfo.name || "",
+      email: initialUserInfo.email || "",
+      phone: initialUserInfo.phone || "",
+      sic: initialUserInfo.sic || "",
+      year: initialUserInfo.year,
+      managedEvents: initialUserInfo.eventHeads?.map((eh) => eh.event.eventName) || [],
+      password: "",
     });
-    // Initialize selected events from userInfo
+    // Initialize selected events from userInfo with proper typing
     if (initialUserInfo.eventHeads) {
-      setSelectedEvents(initialUserInfo.eventHeads.map((eh) => eh.name));
+      setSelectedEvents(initialUserInfo.eventHeads.map((eh) => eh.event.eventName));
+    } else {
+      setSelectedEvents([]);
     }
   }, [initialUserInfo, reset]);
 
@@ -116,39 +124,52 @@ const UserProfileModal = ({
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
           setImagePreview(event.target.result as string);
         }
       };
-      reader.readAsDataURL(e.target.files[0]);
+      reader.readAsDataURL(file);
     }
   };
 
-  const handleEventAdd = (eventName: string) => {
+  const handleEventAdd = (eventName: Events) => {
     if (!selectedEvents.includes(eventName)) {
       setSelectedEvents((prev) => [...prev, eventName]);
     }
     setIsEventDropdownOpen(false);
   };
 
-  const handleEventRemove = (eventName: string) => {
+  const handleEventRemove = (eventName: Events) => {
     setSelectedEvents((prev) => prev.filter((e) => e !== eventName));
   };
 
   const onSubmit = async (data: UserFormData) => {
     try {
+      setIsSubmitting(true);
+      const formData = new FormData();
+      formData.append('name', data.name);
+      formData.append('email', data.email);
+      formData.append('phone', data.phone);
+      formData.append('sic', data.sic);
+      formData.append('year', data.year || '');
+      if (data.password) {
+        formData.append('password', data.password);
+      }
+      // Update managedEvents with the current selectedEvents
+      if (selectedEvents.length > 0) {
+        formData.append('managedEvents', JSON.stringify(selectedEvents));
+      }
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
       const response = await fetch(`/api/users/${initialUserInfo.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...data,
-          imageUrl: imagePreview || initialUserInfo.imageUrl,
-          managedEvents: selectedEvents,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -162,6 +183,8 @@ const UserProfileModal = ({
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error("Failed to update profile. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -198,14 +221,25 @@ const UserProfileModal = ({
               <>
                 <button
                   onClick={handleSubmit(onSubmit)}
-                  className="bg-green-600 hover:bg-green-700 text-white py-1 px-2 sm:px-3 rounded-lg transition-colors flex items-center gap-1 text-sm"
+                  disabled={isSubmitting}
+                  className="bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white py-1 px-2 sm:px-3 rounded-lg transition-colors flex items-center gap-1 text-sm"
                 >
-                  <FaCheck />
-                  <span className="hidden sm:inline">Save</span>
+                  {isSubmitting ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      <span className="hidden sm:inline">Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaCheck />
+                      <span className="hidden sm:inline">Save</span>
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={handleEditToggle}
-                  className="bg-neutral-600 hover:bg-neutral-700 text-white py-1 px-2 sm:px-3 rounded-lg transition-colors flex items-center gap-1 text-sm"
+                  disabled={isSubmitting}
+                  className="bg-neutral-600 hover:bg-neutral-700 disabled:bg-neutral-800 disabled:cursor-not-allowed text-white py-1 px-2 sm:px-3 rounded-lg transition-colors flex items-center gap-1 text-sm"
                 >
                   <FaCancel />
                   <span className="hidden sm:inline">Cancel</span>
@@ -389,6 +423,7 @@ const UserProfileModal = ({
                               <select
                                 {...field}
                                 className="w-full bg-neutral-600 rounded px-2 py-1 mt-1"
+                                value={field.value || ""}
                               >
                                 <option value="">Select year</option>
                                 <option value="FIRST_YEAR">1st year</option>
@@ -408,7 +443,7 @@ const UserProfileModal = ({
                         <p>
                           {initialUserInfo?.year
                             ?.replace("_", " ")
-                            ?.toLowerCase()}
+                            ?.toLowerCase() || "Not specified"}
                         </p>
                       )}
                     </div>
@@ -487,7 +522,7 @@ const UserProfileModal = ({
                       >
                         <span>{eventName.replace(/_/g, " ")}</span>
                         <button
-                          onClick={() => handleEventRemove(eventName)}
+                          onClick={() => handleEventRemove(eventName as Events)}
                           className="hover:text-red-400 transition-colors"
                         >
                           <FaTimes size={12} />
@@ -561,33 +596,35 @@ const UserProfileModal = ({
                       Managing {initialUserInfo.eventHeads.length} events:
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {initialUserInfo.eventHeads.map((event) => (
+                      {initialUserInfo.eventHeads.map((event, index) => (
                         <div
-                          key={event.eventId}
+                          key={index}
                           className="bg-neutral-700 bg-opacity-40 rounded-lg p-2 text-sm"
                         >
-                          {event.name}
+                          {event.event.eventName || "Unnamed Event"}
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : initialUserInfo.role === "USER" &&
-                  initialUserInfo.eventParticipation &&
-                  initialUserInfo.eventParticipation.length > 0 ? (
+                  initialUserInfo.eventParticipants &&
+                  initialUserInfo.eventParticipants.length > 0 ? (
                   <div className="space-y-2">
                     <p className="font-medium mb-2">
                       Participating in{" "}
-                      {initialUserInfo.eventParticipation.length} events:
+                      {initialUserInfo.eventParticipants.length} events:
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {initialUserInfo.eventParticipation.map((event) => (
-                        <div
-                          key={event.eventId}
-                          className="bg-neutral-700 bg-opacity-40 rounded-lg p-2 text-sm"
-                        >
-                          {event.name}
-                        </div>
-                      ))}
+                      {initialUserInfo.eventParticipants.map(
+                        (event, index) => (
+                          <div
+                            key={index}
+                            className="bg-neutral-700 bg-opacity-40 rounded-lg p-2 text-sm"
+                          >
+                            {event.event.eventName || "Unnamed Event"}
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
                 ) : (

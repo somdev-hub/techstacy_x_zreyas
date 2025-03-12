@@ -1,39 +1,27 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   IconArrowLeft,
   IconBrandTabler,
   IconSettings,
-  IconMenu2
+  IconMenu2,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import { Logo, LogoIcon } from "@/components/Sidebar";
-import { GiPartyPopper } from "react-icons/gi";
-import { BiPurchaseTagAlt } from "react-icons/bi";
 import { usePathname } from "next/navigation";
 import UserProfileModal from "@/components/UserProfileModal";
 import { FaBell } from "react-icons/fa";
 import Notification from "@/components/Notification";
 import { useNotifications } from "@/context/NotificationContext";
-
-// Default user data
-const defaultUserInfo = {
-  name: "User",
-  email: "user@example.com",
-  phone: "",
-  college: "",
-  sic: "",
-  year: "",
-  imageUrl: "https://assets.aceternity.com/avatars/default.png",
-  eventParticipation: [] as { eventId: number; name: string; }[],
-  role: "ADMIN" as const,
-};
+import { useUser } from "@/context/UserContext";
+import { Events, Year } from "@prisma/client";
+import { User, EventAssociation } from "@/context/UserContext";
 
 export default function DashboardLayout({
-  children
+  children,
 }: {
   children: React.ReactNode;
 }) {
@@ -41,114 +29,20 @@ export default function DashboardLayout({
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState(defaultUserInfo);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isLoading, error } = useUser();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { hasUnreadNotifications, notifications } = useNotifications();
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
   };
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch("/api/user/me", {
-          credentials: "include"
-        });
-
-        if (!response.ok) {
-          // If not authenticated, redirect immediately
-          router.replace("/");
-          return;
-        }
-
-        const userData = await response.json();
-        
-        if (userData.role === "SUPERADMIN") {
-          toast.error("Please use the Super Admin dashboard");
-          router.replace("/super-admin/home");
-          return;
-        } else if (userData.role === "USER") {
-          toast.error("Please use the regular dashboard");
-          router.replace("/dashboard/home");
-          return;
-        } else if (userData.role !== "ADMIN") {
-          toast.error("Unauthorized access");
-          router.replace("/");
-          return;
-        }
-
-        setUser(userData);
-      } catch (err: unknown) {
-        const error =
-          err instanceof Error ? err : new Error("Unknown error occurred");
-        console.error("Error fetching user data:", error);
-        setError(error.message);
-        toast.error("Failed to load user data");
-        router.replace("/");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserData();
-
-    // Set up token refresh logic
-    const refreshToken = async () => {
-      try {
-        const response = await fetch("/api/auth/refresh", {
-          method: "POST",
-          credentials: "include"
-        });
-
-        if (!response.ok) {
-          router.replace("/");
-          toast.error("Session expired. Please log in again.");
-        }
-      } catch (error) {
-        console.error("Token refresh error:", error);
-      }
-    };
-
-    refreshToken();
-    const refreshInterval = setInterval(refreshToken, 14 * 60 * 1000);
-    return () => clearInterval(refreshInterval);
-  }, [router]);
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-neutral-800">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-neutral-800">
-        <div className="text-white text-center">
-          <p className="text-red-400 mb-4">{error}</p>
-          <button
-            onClick={() => router.push("/")}
-            className="px-4 py-2 bg-neutral-700 rounded-lg"
-          >
-            Return to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const logoutHandler = async () => {
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
-        credentials: "include"
+        credentials: "include",
       });
 
       toast.success("Logged out successfully");
@@ -165,43 +59,65 @@ export default function DashboardLayout({
       href: "/admin/home",
       icon: (
         <IconBrandTabler className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      )
-    },
-    {
-      label: "Attendance",
-      href: "/admin/attendance",
-      icon: (
-        <GiPartyPopper className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      )
-    },
-    {
-      label: "Payments",
-      href: "/admin/payments",
-      icon: (
-        <BiPurchaseTagAlt className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      )
+      ),
     },
     {
       label: "Results",
       href: "/admin/results",
       icon: (
         <IconSettings className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      )
+      ),
     },
+    // Only show treasure hunt link for treasure hunt event heads
+    ...(user?.eventHeads?.some((eh) => eh.event.eventName === "TREASURE_HUNT")
+      ? [
+          {
+            label: "Treasure Hunt",
+            href: "/admin/treasure-hunt",
+            icon: (
+              <IconSettings className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+            ),
+          },
+        ]
+      : []),
     {
       label: "Logout",
       href: "#",
       icon: (
         <IconArrowLeft className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
-      onClick: logoutHandler
-    }
+      onClick: logoutHandler,
+    },
   ];
 
   const toggleProfileModal = () => {
     setOpen(false);
     setIsProfileModalOpen(!isProfileModalOpen);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-neutral-800">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-neutral-800">
+        <div className="text-white text-center">
+          <p className="text-red-400 mb-4">{error}</p>
+          <button
+            onClick={() => router.push("/")}
+            className="px-4 py-2 bg-neutral-700 rounded-lg"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-neutral-800 flex text-white h-[100dvh] overflow-hidden">
@@ -229,17 +145,19 @@ export default function DashboardLayout({
           <div onClick={toggleProfileModal}>
             <SidebarLink
               link={{
-                label: user.name,
+                label: isLoading ? "Loading..." : user?.name || "User",
                 href: "#",
-                icon: (
+                icon: user?.imageUrl ? (
                   <Image
                     src={user.imageUrl}
                     className="h-8 w-8 flex-shrink-0 rounded-full"
                     width={50}
                     height={50}
-                    alt="Avatar"
+                    alt={`${user.name}'s avatar`}
                   />
-                )
+                ) : (
+                  <div className="h-8 w-8 flex-shrink-0 rounded-full bg-neutral-700" />
+                ),
               }}
               className="hover:bg-neutral-700/50 rounded-lg text-lg font-medium cursor-pointer"
             />
@@ -249,7 +167,7 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        <div className="bg-neutral-900 overflow-y-scroll no-visible-scrollbar pt-3 md:pt-6 w-full px-2 md:px-8 my-2 mr-2 rounded-2xl pb-8">
+        <div className="bg-neutral-900 overflow-y-auto overflow-x-hidden pt-3 md:pt-6 w-full px-2 md:px-8 my-2 mr-2 rounded-2xl pb-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <button
@@ -280,7 +198,7 @@ export default function DashboardLayout({
 
           {/* Notification Modal */}
           {isModalOpen && <Notification toggleModal={toggleModal} />}
-          {children}
+          <div className="w-full">{children}</div>
         </div>
       </div>
 
@@ -288,17 +206,17 @@ export default function DashboardLayout({
         isOpen={isProfileModalOpen}
         onClose={toggleProfileModal}
         userInfo={{
-          name: user?.name || "User",
-          email: user?.email || "user@example.com",
-          phone: user?.phone || "",
+          id: user ? parseInt(user.id) : 0,
+          name: user?.name || "",
+          email: user?.email || "",
+          phone: user?.phone ?? null,
           college: user?.college || "",
           sic: user?.sic || "",
-          year: user?.year || "",
-          imageUrl:
-            user?.imageUrl ||
-            "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541",
-          eventParticipation: user?.eventParticipation || [] as { eventId: number; name: string; }[],
-          role: user?.role || "ADMIN"
+          year: (user?.year || "FIRST_YEAR") as Year,
+          imageUrl: user?.imageUrl ?? null,
+          role: user?.role || "ADMIN",
+          eventParticipants: user?.eventParticipants || [],
+          eventHeads: user?.eventHeads || [],
         }}
       />
     </div>

@@ -1,30 +1,46 @@
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { PrismaClient } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
+import { verifyAccessToken } from "@/lib/jwt";
+
 const prisma = new PrismaClient();
 
-export async function GET(req: NextRequest) {
-  // sending total participants in each event along with eventname, eventType, participationType
+export async function GET() {
   try {
-    const eventParticipants = await prisma.eventParticipant.findMany({
-      select: {
-        eventId: true,
-      },
+    const cookieStore = await cookies();
+    const token = cookieStore.get("accessToken")?.value;
+    
+    if (!token) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const decoded = await verifyAccessToken(token);
+    if (!decoded.userId || !decoded.email || !decoded.role || decoded.role !== 'SUPERADMIN') {
+      return NextResponse.json(
+        { error: "Not authorized" },
+        { status: 403 }
+      );
+    }
+
+    // Get count of participants per event
+    const participantCounts = await prisma.eventParticipant.groupBy({
+      by: ['eventId'],
+      _count: {
+        userId: true
+      }
     });
 
-    const totalParticipants = eventParticipants.reduce<Record<number, number>>((acc, curr) => {
-      if (acc[curr.eventId]) {
-        acc[curr.eventId]++;
-      } else {
-        acc[curr.eventId] = 1;
-      }
+    // Convert to a simple object with eventId as key and count as value
+    const result = participantCounts.reduce((acc, item) => {
+      acc[item.eventId] = item._count.userId;
       return acc;
-    }, {});
+    }, {} as Record<number, number>);
 
-    return NextResponse.json(totalParticipants);
+    return NextResponse.json(result);
   } catch (error) {
-    console.error("Failed to fetch total participants:", error);
+    console.error("Failed to fetch event participant counts:", error);
     return NextResponse.json(
-      { error: "Failed to fetch total participants" },
+      { error: "Failed to fetch event participant counts" },
       { status: 500 }
     );
   }

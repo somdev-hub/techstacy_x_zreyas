@@ -5,7 +5,8 @@ import { verifyAccessToken } from "@/lib/jose-auth";
 
 const prisma = new PrismaClient();
 
-export async function GET(request: NextRequest) {
+// Remove unused request parameter
+export async function GET() {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("accessToken")?.value;
@@ -39,16 +40,33 @@ export async function GET(request: NextRequest) {
           sic: true,
           phone: true,
           eventParticipation: true,
+          eventParticipants: {
+            select: {
+              event: {
+                select: {
+                  eventName: true,
+                  name: true,
+                  imageUrl: true,
+                },
+              },
+            },
+          },
+          eventHeads: {
+            select: {
+              event: {
+                select: {
+                  eventName: true,
+                  name: true,
+                  imageUrl: true,
+                },
+              },
+            },
+          },
         },
       });
 
       if (!user) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
-      }
-
-      // Verify role matches between token and database
-      if (user.role !== decoded.role) {
-        return NextResponse.json({ error: "Role mismatch" }, { status: 401 });
       }
 
       return NextResponse.json(user);

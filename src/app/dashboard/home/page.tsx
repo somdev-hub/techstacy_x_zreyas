@@ -2,20 +2,66 @@
 import React, { useEffect, useState } from "react";
 import { EventCard } from "@/components/EventCards";
 import { ThreeDCard } from "@/components/ThreeDCard";
-import { Events, ParticipationType, EventType } from "@prisma/client";
+import { EventType, TshirtSize } from "@prisma/client";
 import { toast } from "sonner";
+import { useUser } from "@/context/UserContext";
+
+// Define an interface for the event data compatible with EventCard
+interface EventData {
+  id: number;
+  name: string;
+  date: string;
+  time: string;
+  description: string;
+  imageUrl: string;
+  eventName: string;
+  participationType: string;
+  eventType: EventType;
+  registrationFee: number;
+  prizePool: number;
+  partialRegistration: boolean;
+}
+
+// Define an interface for the API response
+interface EventApiResponse {
+  id: string;
+  name: string;
+  date: Date | string;
+  time: string;
+  description: string;
+  imageUrl: string;
+  eventName: string;
+  participationType: string;
+  eventType: EventType;
+  prizePool?: number;
+}
 
 const Home = () => {
-  const [technicalEventsData, setTechnicalEventsData] = useState([]);
-  const [nonTechnicalEventsData, setNonTechnicalEventsData] = useState([]);
+  const [technicalEventsData, setTechnicalEventsData] = useState<EventData[]>(
+    []
+  );
+  const [nonTechnicalEventsData, setNonTechnicalEventsData] = useState<
+    EventData[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<{ id: string } | null>(null);
+  const userHook = useUser();
+  const [roboRaceEvent, setRoboRaceEvent] = useState<EventData | null>(null);
 
   const tshirtCard = {
     title: "Get your event t-shirt",
     description:
       "Order your event t-shirt now and get it delivered to your doorstep.",
     src: "/assets/tshirt.png",
+    mainButton: {
+      type: "button",
+      text: "Order Now",
+      onClick: () => {
+        // Redirect to the t-shirt order page
+      },
+      razorpay: true,
+      paymentButtonId: "pl_PjDCUxfpQR0y5x", // Replace with your actual Razorpay payment button ID
+    },
   };
 
   useEffect(() => {
@@ -26,33 +72,44 @@ const Home = () => {
           toast.error("Failed to fetch events");
           throw new Error("Failed to fetch events");
         }
-        const events = await response.json();
+        const events = (await response.json()) as EventApiResponse[];
 
-        // Transform events to match the expected format
-        const transformedEvents = events.map((event: any) => ({
-          id: event.id,
-          name: event.name,
-          date: new Date(event.date).toISOString().split("T")[0],
-          time: event.time,
-          description: event.description,
-          imageUrl: event.imageUrl,
-          eventName: event.eventName,
-          participationType: event.participationType,
-          eventType: event.eventType,
-          registrationFee: 0, // Default to 0 if not specified
-          prizePool: event.prizePool || 0,
-        }));
+        // Transform events to match the expected format with numeric IDs
+        const transformedEvents: EventData[] = events.map(
+          (event: EventApiResponse) => ({
+            id: parseInt(event.id) || 0, // Convert string ID to number
+            name: event.name,
+            date: new Date(event.date).toISOString().split("T")[0],
+            time: event.time,
+            description: event.description,
+            imageUrl: event.imageUrl,
+            eventName: event.eventName,
+            participationType: event.participationType,
+            eventType: event.eventType,
+            registrationFee: 0, // Default to 0 if not specified
+            prizePool: event.prizePool || 0,
+            partialRegistration: false, // Default to false if not specified
+          })
+        );
 
+        // Find ROBO_RACE event
+        const roboRace = transformedEvents.find(
+          (event: EventData) => event.eventName === "ROBO_RACE"
+        );
+        setRoboRaceEvent(roboRace || null);
+
+        // Filter out ROBO_RACE from technical events
         setTechnicalEventsData(
           transformedEvents.filter(
-            (event: { eventType: EventType }) =>
-              event.eventType === EventType.TECHNICAL
+            (event: EventData) =>
+              event.eventType === EventType.TECHNICAL &&
+              event.eventName !== "ROBO_RACE"
           )
         );
 
         setNonTechnicalEventsData(
           transformedEvents.filter(
-            (event: { eventType: EventType }) =>
+            (event: EventData) =>
               event.eventType === EventType.NON_TECHNICAL ||
               event.eventType === EventType.SPORTS
           )
@@ -84,6 +141,15 @@ const Home = () => {
     fetchUser();
   }, []);
 
+  const roboRaceCard = roboRaceEvent
+    ? {
+        title: roboRaceEvent.name,
+        description: roboRaceEvent.description,
+        src: roboRaceEvent.imageUrl,
+        event: roboRaceEvent,
+      }
+    : null;
+
   return (
     <div>
       <div className="mt-8 w-full">
@@ -96,7 +162,10 @@ const Home = () => {
                   <div className="animate-spin h-8 w-8 border-2 border-green-500 border-t-transparent rounded-full"></div>
                 </div>
               ) : (
-                <EventCard cardData={technicalEventsData} userId={user?.id} />
+                <EventCard
+                  cardData={technicalEventsData}
+                  userId={userHook.user?.id}
+                />
               )}
             </div>
           </div>
@@ -117,12 +186,15 @@ const Home = () => {
                   <div className="animate-spin h-8 w-8 border-2 border-green-500 border-t-transparent rounded-full"></div>
                 </div>
               ) : (
-                <EventCard cardData={nonTechnicalEventsData} userId={user?.id} />
+                <EventCard
+                  cardData={nonTechnicalEventsData}
+                  userId={userHook.user?.id}
+                />
               )}
             </div>
           </div>
           <div className="">
-            <ThreeDCard />
+            <ThreeDCard info={roboRaceCard} isEvent={true} />
           </div>
         </div>
       </div>

@@ -6,6 +6,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { TeamDetailsModal } from "@/components/TeamDetailsModal";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // Admin form schema
 const adminFormSchema = z.object({
@@ -45,6 +53,7 @@ const eventFormSchema = z.object({
   participationType: z.nativeEnum(ParticipationType, {
     required_error: "Please select a participation type",
   }),
+  partialRegistration: z.boolean().default(false),
   image: z.any()
 });
 
@@ -162,10 +171,11 @@ const Home = () => {
     fetchData();
   }, []);
 
-  // Filter participants for team leaders table
+  // Filter participants for team leaders table - updated to ensure we only get team leaders
   const filteredParticipants = React.useMemo(() => {
     return teamParticipants.filter(participant => {
-      const isTeamLeader = !participant.mainParticipantId;
+      // Only include participants that are team leaders (mainParticipantId is null)
+      const isTeamLeader = participant.mainParticipantId === null;
       const matchesEventType = !participantsFilterEventType || participant.event.eventType === participantsFilterEventType;
       const matchesEventName = !participantsFilterEventName || participant.event.eventName === participantsFilterEventName;
       return isTeamLeader && matchesEventType && matchesEventName;
@@ -230,6 +240,8 @@ const Home = () => {
     try {
       setIsSubmitting(true);
       const formData = new FormData();
+      
+      // Add all form fields
       formData.append('name', data.name);
       formData.append('eventName', data.eventName);
       formData.append('prizePool', data.prizePool);
@@ -239,12 +251,14 @@ const Home = () => {
       formData.append('time', data.time);
       formData.append('eventType', data.eventType);
       formData.append('participationType', data.participationType);
+      formData.append('partialRegistration', data.partialRegistration ? 'true' : 'false');
       
       if (data.image?.[0]) {
         formData.append('image', data.image[0]);
       }
 
-      const response = await fetch('/api/create-event', {
+      // Use standardized route
+      const response = await fetch('/api/events', {
         method: 'POST',
         body: formData,
       });
@@ -271,7 +285,8 @@ const Home = () => {
       id: member.id.toString(),
       name: member.user.name,
       year: member.user.year,
-      imageUrl: member.user.imageUrl
+      imageUrl: member.user.imageUrl,
+      sic: member.user.sic // Add SIC to team members
     }));
   };
 
@@ -283,7 +298,9 @@ const Home = () => {
         id: participant.id.toString(),
         name: participant.user.name,
         year: participant.user.year,
-        imageUrl: participant.user.imageUrl
+        imageUrl: participant.user.imageUrl,
+        sic: participant.user.sic, // Add SIC to leader
+        eventName: participant.event.eventName // Add event name
       },
       members: teamMembers
     });
@@ -293,14 +310,14 @@ const Home = () => {
     <div>
       <div className="mt-8 w-full">
         <div className="flex flex-col lg:flex-row gap-8">
-          <div className="bg-neutral-800 rounded-xl shadow-md p-4 max-h-[475px] w-[70%]">
-            <div className="flex justify-between items-center mb-4">
-              <h1 className="text-[1.125rem] font-[700]">
-                Event Participation (Team Leaders)
+          <div className="bg-neutral-800 rounded-xl shadow-md p-4 max-h-[475px] md:w-[70%] w-full overflow-fix">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-center mb-3">
+              <h1 className="text-[1rem] md:text-[1.125rem] font-[700]">
+                Teams by Event
               </h1>
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <select 
-                  className="bg-neutral-700 rounded-md px-3 py-1"
+                  className="bg-neutral-700 rounded-md px-2 py-1 text-sm md:text-base"
                   value={participantsFilterEventType}
                   onChange={(e) => setParticipantsFilterEventType(e.target.value)}
                 >
@@ -312,7 +329,7 @@ const Home = () => {
                   ))}
                 </select>
                 <select 
-                  className="bg-neutral-700 rounded-md px-3 py-1"
+                  className="bg-neutral-700 rounded-md px-2 py-1 text-sm md:text-base"
                   value={participantsFilterEventName}
                   onChange={(e) => setParticipantsFilterEventName(e.target.value)}
                 >
@@ -325,54 +342,63 @@ const Home = () => {
                 </select>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-neutral-700">
-                    <th className="text-left p-2">Name</th>
-                    <th className="text-left p-2">SIC</th>
-                    <th className="text-left p-2">Year</th>
-                    <th className="text-left p-2">Event</th>
-                    <th className="text-left p-2">Team Size</th>
-                    <th className="text-left p-2">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <div className="table-container no-visible-scrollbar">
+              <Table>
+                <TableHeader className="sticky top-0 bg-neutral-800 z-10">
+                  <TableRow className="border-b border-neutral-700 hover:bg-transparent">
+                    <TableHead className="text-left">Team Leader</TableHead>
+                    <TableHead className="text-left">SIC</TableHead>
+                    <TableHead className="text-left">Year</TableHead>
+                    <TableHead className="text-left">Event</TableHead>
+                    <TableHead className="text-left">Team Size</TableHead>
+                    <TableHead className="text-left">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {loading ? (
-                    <tr>
-                      <td colSpan={6} className="text-center p-4">Loading...</td>
-                    </tr>
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center p-4">Loading...</TableCell>
+                    </TableRow>
                   ) : filteredParticipants.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="text-center p-4">No participants found</td>
-                    </tr>
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center p-4">No teams found</TableCell>
+                    </TableRow>
                   ) : (
                     filteredParticipants.map((participant) => {
                       const teamSize = participant.otherParticipants.length + 1; // +1 for the leader
                       return (
-                        <tr key={participant.id} className="border-b border-neutral-700">
-                          <td className="p-2">{participant.user.name}</td>
-                          <td className="p-2">{participant.user.sic}</td>
-                          <td className="p-2">{participant.user.year.replace('_', ' ')}</td>
-                          <td className="p-2">{participant.event.eventName}</td>
-                          <td className="p-2">{teamSize}</td>
-                          <td className="p-2">
+                        <TableRow key={participant.id} className="border-b border-neutral-700">
+                          <TableCell>{participant.user.name}</TableCell>
+                          <TableCell>{participant.user.sic}</TableCell>
+                          <TableCell>{participant.user.year.replace('_', ' ')}</TableCell>
+                          <TableCell>{participant.event.eventName}</TableCell>
+                          <TableCell>
+                            {teamSize} 
+                            {participant.event.participationType !== "SOLO" && (
+                              <span className="text-xs text-neutral-400 ml-1">
+                                ({participant.event.participationType === "DUO" ? "2" :
+                                  participant.event.participationType === "QUAD" ? "4" : 
+                                  participant.event.participationType === "QUINTET" ? "5" : "2+"} required)
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             <button 
                               className="bg-blue-600 px-3 py-1 rounded-md"
                               onClick={() => handleViewTeam(participant)}
                             >
-                              View
+                              View Team
                             </button>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       );
                     })
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
-          <div className="w-[30%]">
+          <div className="md:w-[30%] w-full">
             <div className="bg-neutral-800 rounded-xl shadow-md p-4 w-full max-h-[475px]">
               <h1 className="text-[1.125rem] font-[700]">Add admins</h1>
               <form
@@ -506,7 +532,7 @@ const Home = () => {
       </div>
       <div className="mt-8 w-full">
         <div className="flex flex-col lg:flex-row gap-8 w-full">
-          <div className="bg-neutral-800 rounded-xl shadow-md p-4 w-[30%] ">
+          <div className="bg-neutral-800 rounded-xl shadow-md p-4 md:w-[30%] w-full">
             <h1 className="text-[1.125rem] font-[700]">Add events</h1>
             <form
               onSubmit={handleEventSubmit(onEventSubmit)}
@@ -649,6 +675,22 @@ const Home = () => {
                   )}
                 </div>
               </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="partialRegistration"
+                  {...registerEvent("partialRegistration")}
+                  className="rounded bg-neutral-700 border-neutral-500 text-blue-600 focus:ring-blue-500 h-4 w-4"
+                />
+                <label htmlFor="partialRegistration" className="text-sm text-neutral-300">
+                  Allow partial team registration
+                </label>
+              </div>
+              <div className="text-xs text-neutral-400 -mt-2">
+                If enabled, teams can register with fewer members than required by the participation type
+              </div>
+              
               <div>
                 <label className="flex items-center h-10 bg-neutral-700 rounded-md px-3 cursor-pointer">
                   <input
@@ -683,78 +725,76 @@ const Home = () => {
               </button>
             </form>
           </div>
-          <div className="w-[70%]">
-            <div className="bg-neutral-800 rounded-xl shadow-md p-4 max-h-[475px]">
-              <div className="flex justify-between">
-                <h1 className="text-[1.125rem] font-[700]">
+          <div className="md:w-[70%] w-full">
+            <div className="bg-neutral-800 rounded-xl shadow-md p-4 max-h-[475px] overflow-fix">
+              <div className="flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-center mb-3">
+                <h1 className="text-[1rem] md:text-[1.125rem] font-[700]">
                   Participants by event
                 </h1>
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex gap-4">
-                    <select 
-                      className="bg-neutral-700 rounded-md px-3 py-1"
-                      value={summaryFilterEventType}
-                      onChange={(e) => setSummaryFilterEventType(e.target.value)}
-                    >
-                      <option value="">Event Type</option>
-                      {Object.values(EventType).map((eventType, key) => (
-                        <option value={eventType} key={key}>
-                          {eventType}
-                        </option>
-                      ))}
-                    </select>
-                    <select 
-                      className="bg-neutral-700 rounded-md px-3 py-1"
-                      value={summaryFilterEventName}
-                      onChange={(e) => setSummaryFilterEventName(e.target.value)}
-                    >
-                      <option value="">Event Name</option>
-                      {Object.values(Events).map((event, key) => (
-                        <option value={event} key={key}>
-                          {event}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="flex gap-4">
+                  <select 
+                    className="bg-neutral-700 rounded-md px-2 py-1 text-sm md:text-base"
+                    value={summaryFilterEventType}
+                    onChange={(e) => setSummaryFilterEventType(e.target.value)}
+                  >
+                    <option value="">Event Type</option>
+                    {Object.values(EventType).map((eventType, key) => (
+                      <option value={eventType} key={key}>
+                        {eventType}
+                      </option>
+                    ))}
+                  </select>
+                  <select 
+                    className="bg-neutral-700 rounded-md px-2 py-1 text-sm md:text-base"
+                    value={summaryFilterEventName}
+                    onChange={(e) => setSummaryFilterEventName(e.target.value)}
+                  >
+                    <option value="">Event Name</option>
+                    {Object.values(Events).map((event, key) => (
+                      <option value={event} key={key}>
+                        {event}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-neutral-700">
-                      <th className="text-left p-2">Event</th>
-                      <th className="text-left p-2">Event type</th>
-                      <th className="text-left p-2">Participation type</th>
-                      <th className="text-left p-2">Total participants</th>
-                      <th className="text-left p-2">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              <div className="table-container no-visible-scrollbar">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-neutral-800 z-10">
+                    <TableRow className="border-b border-neutral-700 hover:bg-transparent">
+                      <TableHead className="text-left">Event</TableHead>
+                      <TableHead className="text-left">Event Type</TableHead>
+                      <TableHead className="text-left">Participation Type</TableHead>
+                      <TableHead className="text-left">Total Participants</TableHead>
+                      <TableHead className="text-left">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {loading ? (
-                      <tr>
-                        <td colSpan={5} className="text-center p-4">Loading...</td>
-                      </tr>
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center p-4">Loading...</TableCell>
+                      </TableRow>
                     ) : filteredEvents.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="text-center p-4">No events found</td>
-                      </tr>
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center p-4">No events found</TableCell>
+                      </TableRow>
                     ) : (
                       filteredEvents.map((event, index) => (
-                        <tr key={index} className="border-b border-neutral-700">
-                          <td className="p-2">{event.event}</td>
-                          <td className="p-2">{event.eventType}</td>
-                          <td className="p-2">{event.participationType}</td>
-                          <td className="p-2">{event.totalParticipants}</td>
-                          <td className="p-2">
+                        <TableRow key={index} className="border-b border-neutral-700">
+                          <TableCell>{event.event}</TableCell>
+                          <TableCell>{event.eventType}</TableCell>
+                          <TableCell>{event.participationType}</TableCell>
+                          <TableCell>{event.totalParticipants}</TableCell>
+                          <TableCell>
                             <button className="bg-blue-600 px-3 py-1 rounded-md">
                               View
                             </button>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))
                     )}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </div>
           </div>

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
 import { ModalProvider } from "@/context/ModalContext";
 import { Modal } from "@/components/Modal";
 import { LoginModalProvider } from "@/context/LoginModalContext";
@@ -48,6 +47,7 @@ export default function RootLayout({
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased `}
+        suppressHydrationWarning
       >
         <UserProvider>
           <NotificationProvider>

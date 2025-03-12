@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Year } from "@prisma/client";
+import { Events, Year } from "@prisma/client";
 
 export const signupSchema = z
   .object({
@@ -9,36 +9,37 @@ export const signupSchema = z
     phone: z.string().min(10, "Phone number must be at least 10 characters"),
     college: z.string().default("Silicon Institute of Technology, Sambalpur"),
     sic: z.string().min(8, "SIC must be at least 8 characters"),
-    year: z.enum(["FIRST_YEAR", "SECOND_YEAR", "THIRD_YEAR", "FOURTH_YEAR"]),
+    year: z.nativeEnum(Year),
     imageUrl: z.string().optional(),
     eventParticipation: z.number().default(0),
     password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string()
+    confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
-    path: ["confirmPassword"]
+    path: ["confirmPassword"],
   })
   .transform((data) => ({
     ...data,
-    name: `${data.firstName} ${data.lastName}`
+    name: `${data.firstName} ${data.lastName}`,
   }));
 
 export const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8, "Password must be at least 8 characters")
+  password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 export const userFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().regex(/^\d{10}$/, "Phone number must be 10 digits"),
-  sic: z.string().regex(/^[0-9]{7}$/, "SIC must be 7 digits"),
-  year: z.nativeEnum(Year, {
-    errorMap: () => ({ message: "Please select a valid year" }),
-  }),
-  password: z.string().min(6, "Password must be at least 6 characters").optional(),
-  managedEvents: z.array(z.string()).optional(),
+  phone: z.string().min(10, "Phone number must be at least 10 digits"),
+  sic: z.string().min(1, "SIC is required"),
+  year: z.nativeEnum(Year),
+  managedEvents: z.array(z.nativeEnum(Events)).optional(),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .optional(),
 });
 
 export type SignupInput = z.infer<typeof signupSchema>;

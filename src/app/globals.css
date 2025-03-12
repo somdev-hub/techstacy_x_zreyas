@@ -4,14 +4,30 @@
 
 @font-face {
   font-family: "STARBLASTER demo";
-  src:
-    url("/public/STARBLASTER demo.ttf") format("ttf"),
+  src: url("/public/STARBLASTER demo.ttf") format("ttf"),
     url("/public/STARBLASTER demo.ttf") format("ttf");
   font-weight: normal;
   font-style: normal;
 }
+
+@font-face {
+  font-family: "samarkan";
+  src: url("/public/assets/samarkan.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.heading-text {
+  text-shadow: 0px 3px 1px rgba(0, 0, 0, 0.2);
+}
+
+.samarkan {
+  font-family: "samarkan", cursive;
+}
+
 body {
   background-color: rgb(2 6 23 / var(--tw-bg-opacity, 1));
+  scroll-behavior: smooth;
 }
 .no-visible-scrollbar {
   scrollbar-width: none;
@@ -151,4 +167,101 @@ body {
   -webkit-backdrop-filter: blur(4.5px);
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* QR Scanner Styles */
+#qr-reader {
+  border: none !important;
+  padding: 0 !important;
+}
+
+#qr-reader__scan_region {
+  position: relative;
+  min-height: 300px;
+  background: #2a2a2a;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+#qr-reader__scan_region video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+#qr-reader__scan_region img {
+  display: none;
+}
+
+#qr-reader__dashboard {
+  padding: 0 !important;
+  margin-top: 1rem;
+}
+
+#qr-reader__dashboard button {
+  padding: 0.5rem 1rem;
+  background: rgb(37 99 235);
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+#qr-reader__dashboard button:hover {
+  background: rgb(29 78 216);
+}
+
+#qr-reader__dashboard select {
+  padding: 0.5rem;
+  background: rgb(64 64 64);
+  color: white;
+  border: 1px solid rgb(75 85 99);
+  border-radius: 0.375rem;
+  margin-right: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+#qr-reader__status_span {
+  display: none;
+}
+
+#qr-reader__header_message {
+  display: none;
+}
+
+/* Table container utility */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.table-container::-webkit-scrollbar {
+  display: none;
+}
+
+.table-inner {
+  min-width: 700px;
+}
+
+/* Fix for mobile overflow issues */
+@media (max-width: 768px) {
+  .overflow-fix {
+    max-width: calc(100vw - 16px);
+  }
+}
+
+/* Hide scrollbar for the main content */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
 }

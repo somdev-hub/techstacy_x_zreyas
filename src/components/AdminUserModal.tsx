@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { userFormSchema, type UserFormData } from "@/lib/schemas";
-import Image from "next/image";
 import {
   FaTimes,
   FaUser,
@@ -16,6 +15,7 @@ import {
   FaChevronDown,
 } from "react-icons/fa";
 import { Events } from "@prisma/client";
+import { toast } from "sonner";
 
 interface AdminUserModalProps {
   isOpen: boolean;
@@ -31,7 +31,7 @@ interface AdminUserModalProps {
     imageUrl: string;
     role: string;
     eventParticipation?: { eventId: number; name: string }[];
-    eventHeads?: { eventId: number; name: string }[];
+    eventHeads?: { eventId: number; name: string; eventName: Events }[];
   };
   onUpdate?: () => void; // Callback to refresh the users list after update
 }
@@ -43,9 +43,25 @@ const AdminUserModal = ({
   onUpdate,
 }: AdminUserModalProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
+  const [selectedEvents, setSelectedEvents] = useState<Events[]>([]);
   const [isEventDropdownOpen, setIsEventDropdownOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Ensure default values for all form fields to prevent controlled/uncontrolled input warnings
+  const defaultValues = {
+    name: initialUserInfo.name || "",
+    email: initialUserInfo.email || "",
+    phone: initialUserInfo.phone || "",
+    sic: initialUserInfo.sic || "",
+    year:
+      (initialUserInfo.year as
+        | "FIRST_YEAR"
+        | "SECOND_YEAR"
+        | "THIRD_YEAR"
+        | "FOURTH_YEAR") || "FIRST_YEAR",
+    managedEvents: initialUserInfo.eventHeads?.map((eh) => eh.eventName) || [],
+  };
 
   const {
     control,
@@ -54,27 +70,30 @@ const AdminUserModal = ({
     formState: { errors },
   } = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
-    defaultValues: {
-      name: initialUserInfo.name,
-      email: initialUserInfo.email,
-      phone: initialUserInfo.phone,
-      sic: initialUserInfo.sic,
-      year: initialUserInfo.year as any,
-      managedEvents: initialUserInfo.eventHeads?.map((eh) => eh.name) || [],
-    },
+    defaultValues,
   });
 
   useEffect(() => {
     if (initialUserInfo.eventHeads) {
-      setSelectedEvents(initialUserInfo.eventHeads.map((eh) => eh.name));
+      setSelectedEvents(initialUserInfo.eventHeads.map((eh) => eh.eventName));
+    } else {
+      setSelectedEvents([]);
     }
+
+    // Update form values when initialUserInfo changes
     reset({
-      name: initialUserInfo.name,
-      email: initialUserInfo.email,
-      phone: initialUserInfo.phone,
-      sic: initialUserInfo.sic,
-      year: initialUserInfo.year as any,
-      managedEvents: initialUserInfo.eventHeads?.map((eh) => eh.name) || [],
+      name: initialUserInfo.name || "",
+      email: initialUserInfo.email || "",
+      phone: initialUserInfo.phone || "",
+      sic: initialUserInfo.sic || "",
+      year:
+        (initialUserInfo.year as
+          | "FIRST_YEAR"
+          | "SECOND_YEAR"
+          | "THIRD_YEAR"
+          | "FOURTH_YEAR") || "FIRST_YEAR",
+      managedEvents:
+        initialUserInfo.eventHeads?.map((eh) => eh.eventName) || [],
     });
   }, [initialUserInfo, reset]);
 
@@ -93,7 +112,7 @@ const AdminUserModal = ({
 
   if (!isOpen) return null;
 
-  const handleEventAdd = (eventName: string) => {
+  const handleEventAdd = (eventName: Events) => {
     if (!selectedEvents.includes(eventName)) {
       setSelectedEvents((prev) => [...prev, eventName]);
     }
@@ -113,27 +132,40 @@ const AdminUserModal = ({
 
   const onSubmit = async (data: UserFormData) => {
     try {
+      setIsUpdating(true);
+      const formData = new FormData();
+      
+      // Add basic user data
+      formData.append('name', data.name);
+      formData.append('email', data.email);
+      formData.append('phone', data.phone);
+      formData.append('sic', data.sic);
+      formData.append('year', data.year);
+      if (data.password) {
+        formData.append('password', data.password);
+      }
+
+      // Add managed events if user is admin
+      if (initialUserInfo.role === "ADMIN") {
+        formData.append('managedEvents', JSON.stringify(selectedEvents));
+      }
+
       const response = await fetch(`/api/users/${initialUserInfo.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...data,
-          managedEvents:
-            initialUserInfo.role === "ADMIN" ? selectedEvents : undefined,
-        }),
+        body: formData,
       });
 
       if (!response.ok) throw new Error("Failed to update user");
 
-      const updatedUser = await response.json();
+      await response.json();
       setIsEditing(false);
       if (onUpdate) onUpdate();
       toast.success("User updated successfully!");
     } catch (error) {
       console.error("Error updating user:", error);
       toast.error("Failed to update user. Please try again.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -144,6 +176,14 @@ const AdminUserModal = ({
         onClick={isEditing ? undefined : onClose}
       />
       <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] sm:w-[80%] md:w-[35rem] bg-neutral-800 rounded-xl shadow-lg z-50 flex flex-col max-h-[85vh]">
+        {isUpdating && (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-neutral-300">Updating user...</p>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="p-3 sm:p-4 border-b border-neutral-700 flex justify-between items-center">
           <h2 className="text-lg sm:text-xl font-bold">
@@ -153,6 +193,7 @@ const AdminUserModal = ({
             {!isEditing ? (
               <>
                 <button
+                  type="button"
                   onClick={handleEditToggle}
                   className="hover:bg-neutral-700 p-1.5 sm:p-2 rounded-full flex items-center gap-1 text-blue-400 hover:text-blue-300"
                 >
@@ -160,6 +201,7 @@ const AdminUserModal = ({
                   <span className="hidden sm:inline text-sm">Edit</span>
                 </button>
                 <button
+                  type="button"
                   onClick={onClose}
                   className="hover:bg-neutral-700 p-1.5 sm:p-2 rounded-full"
                 >
@@ -169,6 +211,7 @@ const AdminUserModal = ({
             ) : (
               <>
                 <button
+                  type="button"
                   onClick={handleSubmit(onSubmit)}
                   className="bg-green-600 hover:bg-green-700 text-white py-1 px-2 sm:px-3 rounded-lg transition-colors flex items-center gap-1 text-sm"
                 >
@@ -176,6 +219,7 @@ const AdminUserModal = ({
                   <span className="hidden sm:inline">Save</span>
                 </button>
                 <button
+                  type="button"
                   onClick={handleEditToggle}
                   className="bg-neutral-600 hover:bg-neutral-700 text-white py-1 px-2 sm:px-3 rounded-lg transition-colors flex items-center gap-1 text-sm"
                 >
@@ -189,7 +233,15 @@ const AdminUserModal = ({
 
         {/* Scrollable Content */}
         <div className="overflow-y-auto no-visible-scrollbar flex-1">
-          <form onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault(); // Prevent form from submitting automatically
+              if (isEditing) {
+                handleSubmit(onSubmit)(e);
+              }
+            }}
+            className="p-4 space-y-4"
+          >
             {/* Basic Info */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="p-3 rounded-lg bg-neutral-700 bg-opacity-40">
@@ -414,13 +466,14 @@ const AdminUserModal = ({
                   {isEditing ? (
                     <>
                       <div className="flex flex-wrap gap-2">
-                        {selectedEvents.map((eventName) => (
+                        {selectedEvents.map((eventName, index) => (
                           <div
-                            key={eventName}
+                            key={index}
                             className="bg-blue-500 bg-opacity-20 text-sm rounded-full px-3 py-1 flex items-center gap-2"
                           >
                             <span>{eventName.replace(/_/g, " ")}</span>
                             <button
+                              type="button"
                               onClick={() => handleEventRemove(eventName)}
                               className="hover:text-red-400 transition-colors"
                             >
@@ -432,6 +485,7 @@ const AdminUserModal = ({
 
                       <div className="relative" ref={dropdownRef}>
                         <button
+                          type="button"
                           onClick={() =>
                             setIsEventDropdownOpen(!isEventDropdownOpen)
                           }
@@ -454,9 +508,10 @@ const AdminUserModal = ({
                                 (eventName) =>
                                   !selectedEvents.includes(eventName)
                               )
-                              .map((eventName) => (
+                              .map((eventName, index) => (
                                 <button
-                                  key={eventName}
+                                  type="button"
+                                  key={index}
                                   onClick={() => handleEventAdd(eventName)}
                                   className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-600 transition-colors first:rounded-t-lg last:rounded-b-lg"
                                 >
@@ -478,9 +533,9 @@ const AdminUserModal = ({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {initialUserInfo.eventHeads &&
                       initialUserInfo.eventHeads.length > 0 ? (
-                        initialUserInfo.eventHeads.map((event) => (
+                        initialUserInfo.eventHeads.map((event, index) => (
                           <div
-                            key={event.eventId}
+                            key={index}
                             className="bg-neutral-700 bg-opacity-40 rounded-lg p-2 text-sm"
                           >
                             {event.name}
@@ -507,9 +562,9 @@ const AdminUserModal = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {initialUserInfo.eventParticipation &&
                   initialUserInfo.eventParticipation.length > 0 ? (
-                    initialUserInfo.eventParticipation.map((event) => (
+                    initialUserInfo.eventParticipation.map((event, index) => (
                       <div
-                        key={event.eventId}
+                        key={index}
                         className="bg-neutral-700 bg-opacity-40 rounded-lg p-2 text-sm"
                       >
                         {event.name}

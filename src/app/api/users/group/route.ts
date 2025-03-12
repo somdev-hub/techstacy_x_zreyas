@@ -21,7 +21,7 @@ interface User {
 async function fetchEventDetails(eventId: number) {
   return prisma.event.findUnique({
     where: { id: eventId },
-    select: { name: true, imageUrl: true },
+    select: { name: true, eventName: true, imageUrl: true },
   });
 }
 

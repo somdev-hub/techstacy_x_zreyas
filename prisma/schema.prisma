@@ -27,12 +27,14 @@ enum Events {
   SPELL_BEE
   ROBO_RACE
   ROBO_WAR
-  TRESURE_HUNT
-  GULLEY_CRICKET
+  TREASURE_HUNT
+  GULLY_CRICKET
+  BEACH_VOLLEY
   DUNK_THE_BALL
   DART
   PING_PONG
   FOOTSOL
+  SMASH
   SOLO_DANCE
   DUO_DANCE
   GROUP_DANCE
@@ -40,6 +42,8 @@ enum Events {
   DUO_SINGING
   GROUP_SINGING
   SKIT
+  INFORMAL_ANCHORING
+  FORMAL_ANCHORING
 }
 
 enum ParticipationType {
@@ -68,55 +72,78 @@ enum NotificationType {
   TEAM_INVITE
   EVENT_REMINDER
   GENERAL
+  ANNOUNCEMENT
+  RESULT_DECLARATION
+  INVITE_ACCEPTED
+  INVITE_REJECTED
+  EVENT_CANCELLED
+  POSITION_UPDATE
+  QUALIFICATION_UPDATE
+}
+
+enum TshirtSize {
+  XS
+  S
+  M
+  L
+  XL
+  XXL
+  XXXL
 }
 
 model User {
-  id                 Int                @id @default(autoincrement())
+  id                 Int                 @id @default(autoincrement())
   name               String
-  email              String             @unique
-  phone              String             @unique
-  college            String             @default("Silicon Institute of Technology, Sambalpur")
-  sic                String             @unique
-  role               Role               @default(USER)
+  email              String              @unique
+  phone              String              @unique
+  college            String              @default("Silicon Institute of Technology, Sambalpur")
+  sic                String              @unique
+  role               Role                @default(USER)
   year               Year
   imageUrl           String?
   password           String
-  eventParticipation Int                @default(0)
+  eventParticipation Int                 @default(0)
   refreshTokens      RefreshToken[]
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
   eventParticipants  EventParticipant[]
   eventHeads         EventHead[]
   eventAttendances   EventAttendance[]
   fcmToken           String?
   notifications      Notification[]
+  eventResults       EventResult[]
+  notificationQueue  NotificationQueue[]
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique @db.VarChar(255)
+  id        String   @id @default(cuid())
+  token     String   @db.Text
+  tokenHash String   @unique @db.VarChar(255)
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Event {
-  id                Int                @id @default(autoincrement())
-  name              String
-  eventName         Events             @unique
-  eventType         EventType
-  description       String
-  imageUrl          String
-  date              DateTime
-  time              String
-  venue             String
-  participationType ParticipationType
-  eventHeads        EventHead[]
-  eventAttendances  EventAttendance[]
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  participants      EventParticipant[]
-  prizePool         Int                @default(0)
+  id                  Int                @id @default(autoincrement())
+  name                String
+  eventName           Events             @unique
+  eventType           EventType
+  description         String             @db.Text
+  imageUrl            String
+  date                DateTime
+  time                String
+  venue               String
+  partialRegistration Boolean            @default(false)
+  participationType   ParticipationType
+  eventHeads          EventHead[]
+  eventAttendances    EventAttendance[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  participants        EventParticipant[]
+  prizePool           Int                @default(0)
+  eventResults        EventResult[]
 }
 
 model EventHead {
@@ -138,34 +165,150 @@ model EventAttendance {
 }
 
 model EventParticipant {
-  id                Int                @id @default(autoincrement())
-  eventId           Int
-  userId            Int
-  event             Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt         DateTime           @default(now())
-  teamLeader        Boolean            @default(true)
-  
+  id         Int      @id @default(autoincrement())
+  eventId    Int
+  userId     Int
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  teamLeader Boolean  @default(true)
+
   updatedAt         DateTime           @default(now())
   isConfirmed       Boolean            @default(false)
-  isAttended        Boolean            @default(false)  // Moved from EventQR
-  qrCode            String?            // Moved from EventQR
-  mainParticipantId Int?               // ID of the main participant who registered the team
+  isAttended        Boolean            @default(false) // Moved from EventQR
+  qrCode            String? // Moved from EventQR
+  mainParticipantId Int? // ID of the main participant who registered the team
   mainParticipant   EventParticipant?  @relation("TeamMembers", fields: [mainParticipantId], references: [id], onDelete: SetNull)
   otherParticipants EventParticipant[] @relation("TeamMembers")
+  treasureHunt      TreasureHunt?
+  clueScans         ClueScans[]
 }
 
-// Remove EventQR model since we merged it into EventParticipant
+model EventResult {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  userId    Int
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  position  Int
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+}
 
 model Notification {
-  id          Int              @id @default(autoincrement())
-  userId      Int
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String
-  message     String           @db.Text
-  type        NotificationType
-  metadata    Json?
-  isRead      Boolean          @default(false)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String           @db.Text
+  type      NotificationType
+  metadata  Json?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model AllPayments {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  amount    Int
+  status    Boolean  @default(false)
+  refId     String
+  for       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+model TshirtPayments {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  amount    Int        @default(1)
+  size      TshirtSize
+  refId     String
+  status    Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model EventPayments {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  eventId   Int
+  amount    Int
+  refId     String
+  status    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+model ClueScans {
+  id                   Int              @id @default(autoincrement())
+  clueObjectId         Int
+  eventParticipationId Int
+  scannedAt            DateTime         @default(now())
+  eventParticipation   EventParticipant @relation(fields: [eventParticipationId], references: [id])
+  clueObject           ClueObject       @relation(fields: [clueObjectId], references: [id])
+}
+
+model ClueObject {
+  id        Int         @id @default(autoincrement())
+  clue      String
+  qrCode    String
+  clueScans ClueScans[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  firstClues  Clues[] @relation("FirstClue")
+  secondClues Clues[] @relation("SecondClue")
+  thirdClues  Clues[] @relation("ThirdClue")
+  finalClues  Clues[] @relation("FinalClue")
+}
+
+model Clues {
+  id           Int      @id @default(autoincrement())
+  firstClueId  Int
+  secondClueId Int
+  thirdClueId  Int
+  finalClueId  Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  firstClue  ClueObject @relation("FirstClue", fields: [firstClueId], references: [id])
+  secondClue ClueObject @relation("SecondClue", fields: [secondClueId], references: [id])
+  thirdClue  ClueObject @relation("ThirdClue", fields: [thirdClueId], references: [id])
+  finalClue  ClueObject @relation("FinalClue", fields: [finalClueId], references: [id])
+
+  treasureHunt TreasureHunt?
+}
+
+model TreasureHunt {
+  id                   Int              @id @default(autoincrement())
+  eventParticipationId Int              @unique
+  cluesId              Int              @unique
+  clues                Clues            @relation(fields: [cluesId], references: [id])
+  eventParticipant     EventParticipant @relation(fields: [eventParticipationId], references: [id], onDelete: Cascade)
+  hasScannedWinnerQr   Boolean          @default(false)
+  winnerScanTime       DateTime?
+}
+
+model WinnerClue {
+  id        Int      @id @default(autoincrement())
+  clue      String
+  qrCode    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NotificationQueue {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  type      NotificationType @default(GENERAL)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+  sent      Boolean          @default(false)
+  sentAt    DateTime?
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

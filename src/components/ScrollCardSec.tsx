@@ -9,21 +9,21 @@ export function ScrollCardSec() {
       <ContainerScroll
         titleComponent={
           <>
-            <h1 className="text-4xl font-semibold text-white">
-              Unleash the power of <br />
+            <h1 className="text-4xl font-semibold text-white mb-2 md:mb-10">
+              Unleash the magic of <br />
               <span className="text-4xl md:text-[6rem] font-bold mt-1 leading-none">
-                Scroll Animations
+                DJ RB India
               </span>
             </h1>
           </>
         }
       >
         <Image
-          src={`https://ui.aceternity.com/_next/image?url=%2Flinear.webp&w=1920&q=75`}
+          src="/assets/dj.jpg"
           alt="hero"
           height={720}
           width={1400}
-          className="mx-auto rounded-2xl object-cover h-full object-left-top"
+          className="mx-auto rounded-2xl object-cover object-center h-full "
           draggable={false}
         />
       </ContainerScroll>

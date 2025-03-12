@@ -1,0 +1,12 @@
+-- AlterTable
+ALTER TABLE `eventpayments` MODIFY `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);
+
+-- AlterTable
+ALTER TABLE `notification` MODIFY `type` ENUM('TEAM_INVITE', 'EVENT_REMINDER', 'GENERAL', 'ANNOUNCEMENT') NOT NULL;
+
+-- AlterTable
+ALTER TABLE `notificationqueue` ADD COLUMN `metadata` JSON NULL,
+    ADD COLUMN `type` ENUM('TEAM_INVITE', 'EVENT_REMINDER', 'GENERAL', 'ANNOUNCEMENT') NOT NULL DEFAULT 'GENERAL';
+
+-- AddForeignKey
+ALTER TABLE `NotificationQueue` ADD CONSTRAINT `NotificationQueue_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

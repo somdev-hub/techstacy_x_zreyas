@@ -12,8 +12,8 @@ export const HeroHighlight = ({
   className?: string;
   containerClassName?: string;
 }) => {
-  let mouseX = useMotionValue(0);
-  let mouseY = useMotionValue(0);
+  const mouseX = window.innerWidth / 2;
+  const mouseY = window.innerHeight / 2;
 
   function handleMouseMove({
     currentTarget,
@@ -21,7 +21,8 @@ export const HeroHighlight = ({
     clientY,
   }: React.MouseEvent<HTMLDivElement>) {
     if (!currentTarget) return;
-    let { left, top } = currentTarget.getBoundingClientRect();
+    const left = clientX;
+    const top = clientY;
 
     mouseX.set(clientX - left);
     mouseY.set(clientY - top);

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { PrismaClient } from "@prisma/client";
 import { sendNotification } from "@/lib/firebase-admin";
 
@@ -58,85 +57,40 @@ export async function POST(
       );
     }
 
-    // Get the team lead
-    const teamLead = teamMembers.find(
-      (member) => member.mainParticipantId === null
-    );
+    // Delete the participation
+    await prisma.eventParticipant.deleteMany({
+      where: {
+        userId: Number(teamMemberId),
+        eventId: Number(eventId),
+      },
+    });
 
-    if (action === "remove") {
-      // Delete the affected member's participation
-      await prisma.eventParticipant.deleteMany({
-        where: {
-          userId: Number(teamMemberId),
-          eventId: Number(eventId),
-        },
-      });
-
-      // Send notifications to all team members
-      for (const member of teamMembers) {
-        if (member.user.fcmToken && member.user.id !== Number(teamMemberId)) {
-          await sendNotification(
-            member.user.fcmToken,
-            "Team Update",
-            `${affectedMember.user.name} has been removed from the team for ${event.name}`,
-            {
-              type: "TEAM_MEMBER_REMOVED_NOTIFICATION",
-              eventId: eventId.toString(),
-            }
-          );
-        }
-      }
-
-      // Send notification to removed member
-      if (affectedMember.user.fcmToken) {
+    // Send notifications to all team members
+    for (const member of teamMembers) {
+      if (member.user.fcmToken && member.user.id !== Number(teamMemberId)) {
         await sendNotification(
-          affectedMember.user.fcmToken,
+          member.user.fcmToken,
           "Team Update",
-          `You have been removed from the team for ${event.name}`,
+          `${affectedMember.user.name} has been removed from the team for ${event.name}`,
           {
-            type: "TEAM_MEMBER_REMOVED",
+            type: "TEAM_MEMBER_REMOVED_NOTIFICATION",
             eventId: eventId.toString(),
           }
         );
       }
-    } else if (action === "cancel") {
-      // Delete the pending request
-      await prisma.eventParticipant.deleteMany({
-        where: {
-          userId: Number(teamMemberId),
-          eventId: Number(eventId),
-        },
-      });
+    }
 
-      // Send notifications to all team members
-      for (const member of teamMembers) {
-        if (member.user.fcmToken && member.user.id !== Number(teamMemberId)) {
-          await sendNotification(
-            member.user.fcmToken,
-            "Team Update",
-            `The team invite for ${affectedMember.user.name} has been cancelled for ${event.name}`,
-            {
-              type: "TEAM_INVITE_CANCELLED_NOTIFICATION",
-              eventId: eventId.toString(),
-            }
-          );
+    // Send notification to removed member
+    if (affectedMember.user.fcmToken) {
+      await sendNotification(
+        affectedMember.user.fcmToken,
+        "Team Update",
+        `You have been removed from the team for ${event.name}`,
+        {
+          type: "TEAM_MEMBER_REMOVED",
+          eventId: eventId.toString(),
         }
-      }
-
-      // Send notification to affected member
-      if (affectedMember.user.fcmToken) {
-        await sendNotification(
-          affectedMember.user.fcmToken,
-          "Team Invite Cancelled",
-          `Your team invite for ${event.name} has been cancelled`,
-          {
-            type: "TEAM_INVITE_CANCELLED",
-            eventId: eventId.toString(),
-          }
-        );
-      }
-    } else {
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+      );
     }
 
     return NextResponse.json({ success: true });

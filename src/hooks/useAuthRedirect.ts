@@ -8,16 +8,13 @@ export function useAuthRedirect() {
   useEffect(() => {
     async function checkAuthAndRedirect() {
       try {
-        const response = await fetch("/api/user/me", {
-          credentials: "include"
-        });
+        const role = await fetchUser();
 
-        if (response.ok) {
-          const userData = await response.json();
-          console.log("User is authenticated:", userData);
+        if (role) {
+          console.log("User is authenticated:", role);
 
           // Redirect based on user role
-          switch (userData.role) {
+          switch (role) {
             case "SUPERADMIN":
               router.push("/super-admin/home");
               break;
@@ -39,6 +36,23 @@ export function useAuthRedirect() {
         setIsLoading(false);
       }
     }
+
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/user/me', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch user');
+        }
+  
+        const { role } = await response.json();
+        return role;
+      } catch (_error) {
+        return null;
+      }
+    };
 
     checkAuthAndRedirect();
   }, [router]);

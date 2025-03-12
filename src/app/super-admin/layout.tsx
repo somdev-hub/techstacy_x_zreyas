@@ -1,34 +1,28 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  IconArrowLeft,
   IconBrandTabler,
-  IconSettings,
   IconMenu2,
+  IconClipboardCheck,
+  IconUserPlus,
+  IconCalendarEvent,
+  IconCreditCard,
+  IconTrophy,
+  IconLogout,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import { Logo, LogoIcon } from "@/components/Sidebar";
-import { GiPartyPopper } from "react-icons/gi";
-import { BiPurchaseTagAlt } from "react-icons/bi";
 import { usePathname } from "next/navigation";
 import UserProfileModal from "@/components/UserProfileModal";
 import { FaBell } from "react-icons/fa";
 import Notification from "@/components/Notification";
-
-// Default user data
-const defaultUserInfo = {
-  name: "User",
-  email: "user@example.com",
-  phone: "",
-  college: "",
-  sic: "",
-  year: "",
-  imageUrl: "https://assets.aceternity.com/avatars/default.png",
-  eventParticipation: 0,
-};
+import { useUser } from "@/context/UserContext";
+import { useNotifications } from "@/context/NotificationContext";
+import { Events, Year } from "@prisma/client";
+import { User, EventAssociation } from "@/context/UserContext";
 
 export default function SuperAdminLayout({
   children,
@@ -39,50 +33,29 @@ export default function SuperAdminLayout({
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { user, isLoading, error } = useUser();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // const [userId, setUserId] = useState<string | null>(null);
-  const [user, setUser] = useState(defaultUserInfo);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { hasUnreadNotifications, notifications } = useNotifications();
 
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
   };
 
-  const notifications = [
-    {
-      id: 1,
-      title: "New Event Registration",
-      message: "You have successfully registered for Hackathon 2023",
-      time: "2 hours ago",
-      read: false,
-    },
-    {
-      id: 2,
-      title: "Event Reminder",
-      message: "Technical Workshop starts in 3 hours",
-      time: "3 hours ago",
-      read: true,
-    },
-    {
-      id: 3,
-      title: "Registration Deadline",
-      message: "Last day to register for Coding Competition",
-      time: "1 day ago",
-      read: true,
-    },
-  ];
-
   const logoutHandler = async () => {
-    const response = await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include",
-    });
-    if (response.ok) {
-      const data = await response.json();
-      toast.success(data.message);
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(data.message);
+      }
+      router.push("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout");
     }
-    router.push("/");
   };
 
   const links = [
@@ -94,45 +67,52 @@ export default function SuperAdminLayout({
       ),
     },
     {
+      label: "Notifications",
+      href: "/super-admin/notifications",
+      icon: (
+        <FaBell className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+      ),
+    },
+    {
       label: "Attendance",
       href: "/super-admin/attendance",
       icon: (
-        <GiPartyPopper className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+        <IconClipboardCheck className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
     },
     {
       label: "Registrations",
       href: "/super-admin/registrations",
       icon: (
-        <GiPartyPopper className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+        <IconUserPlus className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
     },
     {
       label: "Events",
       href: "/super-admin/events",
       icon: (
-        <GiPartyPopper className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+        <IconCalendarEvent className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
     },
     {
       label: "Payments",
       href: "/super-admin/payments",
       icon: (
-        <BiPurchaseTagAlt className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+        <IconCreditCard className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
     },
     {
       label: "Results",
       href: "/super-admin/results",
       icon: (
-        <IconSettings className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+        <IconTrophy className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
     },
     {
       label: "Logout",
       href: "/",
       icon: (
-        <IconArrowLeft className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+        <IconLogout className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
@@ -145,78 +125,6 @@ export default function SuperAdminLayout({
     setOpen(false);
     setIsProfileModalOpen(!isProfileModalOpen);
   };
-
-  // Add authentication check and data fetching
-  useEffect(() => {
-    const fetchUserData = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch("/api/user/me", {
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          // If not authenticated, redirect immediately
-          router.replace("/");
-          return;
-        }
-
-        const userData = await response.json();
-        console.log("User data:", userData);
-
-        // Check if user is SUPERADMIN
-        if (userData.role === "ADMIN") {
-          toast.error("Please use the Admin dashboard");
-          router.replace("/admin/home");
-          return;
-        } else if (userData.role === "USER") {
-          toast.error("Please use the regular dashboard");
-          router.replace("/dashboard/home");
-          return;
-        } else if (userData.role !== "SUPERADMIN") {
-          toast.error("Unauthorized access");
-          router.replace("/");
-          return;
-        }
-
-        setUser(userData);
-      } catch (err: unknown) {
-        const error =
-          err instanceof Error ? err : new Error("Unknown error occurred");
-        console.error("Error fetching user data:", error);
-        setError(error.message);
-        toast.error("Failed to load user data");
-        router.replace("/");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserData();
-
-    // Token refresh logic
-    const refreshToken = async () => {
-      try {
-        const response = await fetch("/api/auth/refresh", {
-          method: "POST",
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          router.push("/");
-          toast.error("Session expired. Please log in again.");
-        }
-      } catch (error) {
-        console.error("Token refresh error:", error);
-      }
-    };
-
-    refreshToken();
-    const refreshInterval = setInterval(refreshToken, 14 * 60 * 1000);
-    return () => clearInterval(refreshInterval);
-  }, [router]);
 
   // Modify the return statement to handle loading and error states
   if (isLoading) {
@@ -269,7 +177,7 @@ export default function SuperAdminLayout({
           <div onClick={toggleProfileModal}>
             <SidebarLink
               link={{
-                label: user?.name,
+                label: user?.name || "User",
                 href: "#",
                 icon: (
                   <Image
@@ -313,9 +221,9 @@ export default function SuperAdminLayout({
               onClick={toggleModal}
             >
               <FaBell className="text-2xl" />
-              {notifications.filter((n) => !n.read).length > 0 && (
+              {notifications.filter((n) => !n.isRead).length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                  {notifications.filter((n) => !n.read).length}
+                  {notifications.filter((n) => !n.isRead).length}
                 </span>
               )}
             </div>
@@ -336,16 +244,17 @@ export default function SuperAdminLayout({
         isOpen={isProfileModalOpen}
         onClose={toggleProfileModal}
         userInfo={{
-          name: user?.name || "User",
-          email: user?.email || "user@example.com",
-          phone: user?.phone || "",
+          id: user ? parseInt(user.id) : 0,
+          name: user?.name || "",
+          email: user?.email || "",
+          phone: user?.phone ?? null,
           college: user?.college || "",
           sic: user?.sic || "",
-          year: user?.year || "",
-          imageUrl:
-            user?.imageUrl ||
-            "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541",
-          eventParticipation: user?.eventParticipation || 0,
+          year: (user?.year || "FIRST_YEAR") as Year,
+          imageUrl: user?.imageUrl ?? null,
+          role: user?.role || "SUPERADMIN",
+          eventParticipants: user?.eventParticipants || [],
+          eventHeads: user?.eventHeads || [],
         }}
       />
     </div>

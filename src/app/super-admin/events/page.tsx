@@ -17,6 +17,7 @@ interface Event {
   prizePool: number;
   createdAt: string; // Will be converted from DateTime
   updatedAt: string; // Will be converted from DateTime
+  partialRegistration: boolean; // Add partialRegistration field
 }
 
 const EventsPage = () => {
@@ -73,7 +74,8 @@ const EventsPage = () => {
     eventType: event.eventType,
     registrationFee: 0, // This field is not in the schema
     prizePool: event.prizePool,
-    venue: event.venue
+    venue: event.venue,
+    partialRegistration: event.partialRegistration || false // Include partialRegistration field with default false
   }));
 
   return (

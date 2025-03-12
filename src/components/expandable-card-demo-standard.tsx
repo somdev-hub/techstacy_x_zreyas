@@ -10,6 +10,9 @@ export default function ExpandableCardDemo() {
   );
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
+  const [_event, setEvent] = useState(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {

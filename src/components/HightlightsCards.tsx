@@ -12,46 +12,49 @@ export function HightlightsCards() {
       >
         <div className="max-w-xs">
           <h2 className="text-left text-balance text-base md:text-xl lg:text-3xl font-semibold tracking-[-0.015em] text-white">
-            Gippity AI powers the entire universe
+            Enjoy the evening with a mix of classical plus modern dance
           </h2>
           <p className="mt-4 text-left  text-base/6 text-neutral-200">
-            With over 100,000 mothly active bot users, Gippity AI is the most
-            popular AI platform for developers.
+            Witness the best of both worlds with a mix of classical and modern
+            dance performances. The evening will be filled with a variety of
+            dance forms, from classical to modern.
           </p>
         </div>
         <Image
-          src="/linear.webp"
+          src="/assets/classical.png"
           width={500}
           height={500}
           alt="linear demo image"
-          className="absolute -right-4 lg:-right-[40%] grayscale filter -bottom-10 object-contain rounded-2xl"
+          className="absolute -right-4 lg:-right-[0] grayscale filter -bottom-10 object-contain rounded-2xl"
         />
       </WobbleCard>
       <WobbleCard containerClassName="col-span-1 min-h-[300px]">
         <h2 className="max-w-80  text-left text-balance text-base md:text-xl lg:text-3xl font-semibold tracking-[-0.015em] text-white">
-          No shirt, no shoes, no weapons.
+          Immerse yourself in the world of music
         </h2>
         <p className="mt-4 max-w-[26rem] text-left  text-base/6 text-neutral-200">
-          If someone yells “stop!”, goes limp, or taps out, the fight is over.
+          Experience the magic of music with our live performances and DJ
+          sessions. Dance to the beats of your favorite songs and enjoy the
+          evening with your friends and family.
         </p>
       </WobbleCard>
       <WobbleCard containerClassName="col-span-1 lg:col-span-3 bg-blue-900 min-h-[500px] lg:min-h-[600px] xl:min-h-[300px]">
         <div className="max-w-sm">
           <h2 className="max-w-sm md:max-w-lg  text-left text-balance text-base md:text-xl lg:text-3xl font-semibold tracking-[-0.015em] text-white">
-            Signup for blazing-fast cutting-edge state of the art Gippity AI
-            wrapper today!
+            Fight to win with the best combo of technical, sports, non-technical
+            events.
           </h2>
           <p className="mt-4 max-w-[26rem] text-left  text-base/6 text-neutral-200">
-            With over 100,000 mothly active bot users, Gippity AI is the most
-            popular AI platform for developers.
+            Play sports, participate in tech and non-tech events in the morning
+            and enjoy the evening with dance and music performances.
           </p>
         </div>
         <Image
-          src="https://assets.aceternity.com/macbook.png"
+          src="/assets/racing-car.png"
           width={500}
           height={500}
           alt="linear demo image"
-          className="absolute -right-10 md:-right-[40%] lg:-right-[20%] -bottom-10 object-contain rounded-2xl"
+          className="absolute -right-[1.5rem] md:-right-[40%] w-3/4 sm:w-1/2 xl:w-1/4 lg:-right-[0.5rem] bottom-[-0.5rem] object-contain rounded-2xl"
         />
       </WobbleCard>
     </div>

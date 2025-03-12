@@ -8,13 +8,12 @@ import QRCode from "react-qr-code";
 import { toast } from "sonner";
 
 interface TeamMember {
-  // id: number;
   name: string;
   imageUrl: string | null;
   sic: string;
   isMainParticipant: boolean;
   isConfirmed: boolean;
-  id: number; // Changed from string to number
+  id: number;
 }
 
 interface QRCardProps {
@@ -38,16 +37,11 @@ interface QRCardProps {
 
 export function QRCard({ cardData }: QRCardProps) {
   const [active, setActive] = useState<(typeof cards)[number] | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [loadingStates, setLoadingStates] = useState<{
-    [key: string]: boolean;
-  }>({});
+  const [isDeletingParticipation, setIsDeletingParticipation] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
 
   const cards = cardData.map((event) => {
-    console.log("Event teammates:", event.teammates);
     return {
       description: event.description,
       title: event.name,
@@ -68,67 +62,55 @@ export function QRCard({ cardData }: QRCardProps) {
     setActive(null);
   });
 
-  const handleTeamMemberAction = async (
-    teamMemberId: number,
-    action: "remove" | "cancel"
-  ) => {
+  const handleDeleteParticipation = async () => {
+    if (!active?.event.id) return;
+
     try {
-      setLoadingStates((prev) => ({ ...prev, [teamMemberId]: true }));
-      const response = await fetch(`/api/events/team-member/${action}`, {
+      setIsDeletingParticipation(true);
+      const response = await fetch("/api/events/delete-participation", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // This ensures cookies are sent with the request
+        credentials: "include",
         body: JSON.stringify({
-          eventId: active?.event.id,
-          teamMemberId,
+          eventId: active.event.id,
         }),
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.error || "Failed to update team member");
+        throw new Error(data.error || "Failed to delete participation");
       }
 
-      toast.success(
-        `Team member ${
-          action === "remove" ? "removed" : "invitation cancelled"
-        } successfully`
-      );
-      // Refresh the page to get updated data
+      toast.success("Team participation cancelled successfully");
       window.location.reload();
     } catch (error) {
       console.error("Error:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to update team member"
+        error instanceof Error
+          ? error.message
+          : "Failed to delete participation"
       );
     } finally {
-      setLoadingStates((prev) => ({ ...prev, [teamMemberId]: false }));
+      setIsDeletingParticipation(false);
     }
   };
 
   const renderTeamMembers = (teamMembers?: TeamMember[]) => {
     if (!teamMembers || teamMembers.length === 0) return null;
 
-    const allConfirmed = teamMembers.every((member) => member.isConfirmed);
+    // Sort members to ensure team leader is first
+    const sortedMembers = [...teamMembers].sort((a, b) =>
+      a.isMainParticipant ? -1 : b.isMainParticipant ? 1 : 0
+    );
 
     return (
       <div className="mt-4 p-4 bg-neutral-800 rounded-lg">
-        <div className="flex justify-between items-center mb-3">
-          <h4 className="text-neutral-200 font-semibold">Team Members</h4>
-          {active?.event.teammates?.some((m) => m.isMainParticipant) && (
-            <button
-              onClick={() => setIsEditMode(!isEditMode)}
-              className="text-sm px-3 py-1 rounded-md bg-neutral-700 hover:bg-neutral-600 transition-colors"
-            >
-              {isEditMode ? "Done" : "Edit Team"}
-            </button>
-          )}
-        </div>
+        <h4 className="text-neutral-200 font-semibold mb-3">Team Members</h4>
         <div className="space-y-3">
-          {teamMembers.map((member, index) => (
+          {sortedMembers.map((member, index) => (
             <div key={index} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Image
@@ -148,7 +130,7 @@ export function QRCard({ cardData }: QRCardProps) {
                   <p className="text-neutral-400 text-xs">{member.sic}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center">
                 <span
                   className={`px-2 py-1 rounded text-xs ${
                     member.isConfirmed
@@ -158,45 +140,19 @@ export function QRCard({ cardData }: QRCardProps) {
                 >
                   {member.isConfirmed ? "Confirmed" : "Pending"}
                 </span>
-                {isEditMode && !member.isMainParticipant && (
-                  <button
-                    onClick={() =>
-                      handleTeamMemberAction(
-                        member.id,
-                        member.isConfirmed ? "remove" : "cancel"
-                      )
-                    }
-                    disabled={loadingStates[member.id]}
-                    className={`text-xs px-2 py-1 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors 
-                      ${
-                        loadingStates[member.id]
-                          ? "opacity-50 cursor-not-allowed"
-                          : ""
-                      }`}
-                  >
-                    {loadingStates[member.id]
-                      ? "Loading..."
-                      : member.isConfirmed
-                      ? "Remove"
-                      : "Cancel"}
-                  </button>
-                )}
               </div>
             </div>
           ))}
         </div>
-        {allConfirmed && (
-          <div className="mt-4 pt-4 border-t border-neutral-700">
-            <p className="text-green-400 text-sm">
-              All team members have confirmed their participation! 🎉
-            </p>
-          </div>
-        )}
       </div>
     );
   };
 
   const renderEventDetails = (activeCard: (typeof cards)[0]) => {
+    const currentUser = activeCard.event.teammates?.find(
+      (m) => m.isMainParticipant
+    );
+
     return (
       <div>
         <p className="mb-2">
@@ -219,6 +175,20 @@ export function QRCard({ cardData }: QRCardProps) {
         </p>
         <p className="mt-4 mb-4">{activeCard.description}</p>
         {renderTeamMembers(activeCard.event.teammates)}
+        <div className="mt-4">
+          {/* Only show cancel team participation button if user is team leader */}
+          {currentUser?.isMainParticipant && (
+            <button
+              onClick={handleDeleteParticipation}
+              disabled={isDeletingParticipation}
+              className="w-full px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeletingParticipation
+                ? "Cancelling participation..."
+                : "Cancel Team Participation"}
+            </button>
+          )}
+        </div>
       </div>
     );
   };
@@ -257,9 +227,21 @@ export function QRCard({ cardData }: QRCardProps) {
               ref={ref}
               className="w-full max-w-[500px] h-full md:h-[90vh] md:max-h-[90%] flex flex-col bg-neutral-900 sm:rounded-3xl overflow-auto no-visible-scrollbar"
             >
-              <div className="flex justify-center items-center p-8 bg-white">
-                <QRCode value={active.qrCode} />
-              </div>
+              {active.event.eventType === "CULTURAL" ? (
+                <div className="flex justify-center items-center p-8 bg-white">
+                  <Image
+                    src={active.src}
+                    alt={active.title}
+                    width={400}
+                    height={400}
+                    className="object-cover rounded-lg"
+                  />
+                </div>
+              ) : (
+                <div className="flex justify-center items-center p-8 bg-white">
+                  <QRCode value={active.qrCode} />
+                </div>
+              )}
 
               <div>
                 <div className="flex justify-between items-start p-4 gap-8">
@@ -312,14 +294,14 @@ export function QRCard({ cardData }: QRCardProps) {
       <ul className="mx-auto w-full gap-4">
         {cards.map((card, index) => (
           <motion.div
-            layoutId={`card-${card.title}-${id}`}
+            layoutId={`card-${card.title}-${id}-${index}`}
             key={index}
             onClick={() => setActive(card)}
             className="py-4 md:p-4 flex flex-col md:flex-row justify-between items-center rounded-xl hover:bg-neutral-800 cursor-pointer"
           >
             <div className="flex gap-4 flex-col md:flex-row md:w-[80%]">
               <motion.div
-                layoutId={`image-${card.title}-${id}`}
+                layoutId={`image-${card.title}-${id}-${index}`}
                 className="flex items-center justify-center"
               >
                 <Image
@@ -332,13 +314,13 @@ export function QRCard({ cardData }: QRCardProps) {
               </motion.div>
               <div className="w-full">
                 <motion.h3
-                  layoutId={`title-${card.title}-${id}`}
+                  layoutId={`title-${card.title}-${id}-${index}`}
                   className="font-medium text-neutral-200 text-center md:text-left"
                 >
                   {card.title}
                 </motion.h3>
                 <motion.p
-                  layoutId={`description-${card.description}-${id}`}
+                  layoutId={`description-${card.description}-${id}-${index}`}
                   className="text-neutral-400 text-center md:text-left"
                 >
                   {card.description}
@@ -369,7 +351,7 @@ export function QRCard({ cardData }: QRCardProps) {
               </div>
             </div>
             <motion.button
-              layoutId={`button-${card.title}-${id}`}
+              layoutId={`button-${card.title}-${id}-${index}`}
               className="px-4 py-2 w-32 text-sm rounded-full font-bold mt-4 md:mt-0 bg-gray-100 hover:bg-blue-500 hover:text-white text-black"
               onClick={(e) => {
                 e.stopPropagation();

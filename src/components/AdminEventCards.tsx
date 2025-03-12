@@ -22,6 +22,7 @@ interface AdminEventCardProps {
     eventType: EventType;
     prizePool: number;
     venue: string;
+    partialRegistration?: boolean; // Add partialRegistration field
   }[];
 }
 
@@ -41,6 +42,7 @@ const eventFormSchema = z.object({
   participationType: z.nativeEnum(ParticipationType, {
     required_error: "Please select a participation type",
   }),
+  partialRegistration: z.boolean().default(false), // Add partialRegistration to schema
   image: z.any().optional(),
 });
 
@@ -59,8 +61,9 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
     time: string;
     venue: string;
     eventName: Events;
+    partialRegistration: boolean; // Add partialRegistration field
   };
-  
+
   const [active, setActive] = useState<CardType | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,6 +91,7 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
     time: event?.time,
     venue: event?.venue,
     eventName: event?.key,
+    partialRegistration: event?.partialRegistration || false, // Default to false if not provided
   }));
 
   useEffect(() => {
@@ -101,50 +105,89 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
       setValue("time", active.time);
       setValue("eventType", active.eventType);
       setValue("participationType", active.participationType);
+      setValue("partialRegistration", active.partialRegistration); // Set partialRegistration value
     }
   }, [active, isEditing, setValue]);
 
-  const onSubmit = async (data: EventFormValues) => {
-    if (!active) return;
-    
+  const handleUpdateEvent = async (id: number, formData: FormData) => {
     try {
-      setIsSubmitting(true);
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (key === "image" && value?.[0]) {
-          formData.append("imageUrl", value[0]); // Changed from 'image' to 'imageUrl' to match schema
-        } else if (value !== undefined) {
-          formData.append(key, value.toString());
-        }
-      });
-      formData.append("id", active.id.toString());
-
-      const response = await fetch(`/api/events/${active.id}`, {
-        method: "PUT",
+      const response = await fetch(`/api/events/${id}`, {
+        method: "PATCH", // Changed from PUT to PATCH to match new API
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update event");
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update event");
       }
 
+      const updatedEvent = await response.json();
       toast.success("Event updated successfully");
-      setIsEditing(false);
-      // Here you might want to refresh the events data by calling window.location.reload()
-      window.location.reload();
+      return updatedEvent;
     } catch (error) {
-      console.error("Failed to update event:", error);
+      console.error("Error updating event:", error);
       toast.error(
         error instanceof Error ? error.message : "Failed to update event"
       );
+      throw error;
+    }
+  };
+
+  const handleDeleteEvent = async (id: number) => {
+    try {
+      const response = await fetch(`/api/events/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete event");
+      }
+
+      toast.success("Event deleted successfully");
+      // Refresh the page to update the event list
+      window.location.reload();
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete event"
+      );
+    }
+  };
+
+  const onSubmit = async (data: EventFormValues) => {
+    if (!active) return;
+
+    try {
+      setIsSubmitting(true);
+      const formData = new FormData();
+
+      // Add all form fields to formData
+      Object.entries(data).forEach(([key, value]) => {
+        if (key === "image" && value?.[0]) {
+          formData.append("image", value[0]);
+        } else if (key === "partialRegistration") {
+          formData.append(key, value ? "true" : "false");
+        } else if (value !== undefined) {
+          formData.append(key, value.toString());
+        }
+      });
+
+      await handleUpdateEvent(active.id, formData);
+      setIsEditing(false);
+      window.location.reload(); // Refresh to show updated data
+    } catch (error) {
+      console.error("Failed to update event:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   useOutsideClick(ref as React.RefObject<HTMLDivElement>, () => {
+    if (isEditing) {
+      setIsEditing(false);
+    }
     setActive(null);
-    setIsEditing(false);
   });
 
   const handleEditClick = (e: React.MouseEvent) => {
@@ -291,13 +334,36 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
           </div>
         </div>
 
+        <div className="flex items-center space-x-2 mt-4">
+          <input
+            type="checkbox"
+            id="partialRegistration"
+            {...register("partialRegistration")}
+            className="rounded bg-neutral-700 border-neutral-500 text-blue-600 focus:ring-blue-500 h-4 w-4"
+          />
+          <label htmlFor="partialRegistration" className="text-sm text-white">
+            Allow partial team registration
+          </label>
+        </div>
+        <div className="text-xs text-neutral-400 -mt-2">
+          If enabled, teams can register with fewer members than required by the
+          participation type
+        </div>
+
         <div>
           <label className="flex items-center h-10 bg-neutral-700 rounded-md px-3 cursor-pointer">
             <input
               type="file"
+              name="image"
               accept="image/*"
               {...register("image")}
               className="w-full text-sm text-white appearance-none file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:text-white file:bg-blue-600 hover:file:bg-blue-700 file:cursor-pointer focus:outline-none file:h-7 h-7"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  formData.set("image", file);
+                }
+              }}
             />
           </label>
         </div>
@@ -342,6 +408,10 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
         </p>
         <p className="mb-2">
           <strong>Prize Pool:</strong> ₹{activeCard.prizePool}
+        </p>
+        <p className="mb-2">
+          <strong>Partial Registration:</strong>{" "}
+          {activeCard.partialRegistration ? "Enabled" : "Disabled"}
         </p>
         <p className="mt-4 mb-4">{activeCard.description}</p>
       </div>
@@ -395,8 +465,8 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
                   priority
                   width={200}
                   height={200}
-                  src={active.src || '/assets/tshirt.png'} // Provide default image
-                  alt={active.title || 'Event Image'}
+                  src={active.src || "/assets/tshirt.png"} // Provide default image
+                  alt={active.title || "Event Image"}
                   className="w-full h-80 lg:h-80 sm:rounded-tr-lg sm:rounded-tl-lg object-cover object-top"
                 />
                 {!isEditing && (
@@ -444,8 +514,8 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
                 <Image
                   width={100}
                   height={100}
-                  src={card?.src || '/assets/tshirt.png'} // Provide default image
-                  alt={card?.title || 'Event Image'}
+                  src={card?.src || "/assets/tshirt.png"} // Provide default image
+                  alt={card?.title || "Event Image"}
                   className="h-40 w-40 md:h-14 md:w-14 rounded-lg object-cover object-top"
                 />
               </motion.div>
@@ -460,7 +530,7 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
                   layoutId={`description-${card?.description}-${id}`}
                   className="text-neutral-400 text-center md:text-left"
                 >
-                  {card?.description}
+                  {card?.description.substring(0, 100)}...
                 </motion.p>
               </div>
             </div>

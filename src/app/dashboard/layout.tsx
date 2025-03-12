@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -7,6 +7,9 @@ import {
   IconBrandTabler,
   IconSettings,
   IconMenu2,
+  IconTrophy,
+  IconMapPin,
+  IconLogout,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
@@ -18,19 +21,9 @@ import UserProfileModal from "@/components/UserProfileModal";
 import { FaBell } from "react-icons/fa";
 import Notification from "@/components/Notification";
 import { useNotifications } from "@/context/NotificationContext";
-
-// Default user data as fallback
-const defaultUserInfo = {
-  name: "User",
-  email: "user@example.com",
-  phone: "",
-  college: "",
-  sic: "",
-  year: "",
-  imageUrl: "https://assets.aceternity.com/avatars/default.png",
-  eventParticipation: [] as { eventId: number; name: string; }[],
-  role: "USER" as const,
-};
+import { useUser } from "@/context/UserContext";
+import { Events, Year } from "@prisma/client";
+import { User, EventAssociation } from "@/context/UserContext";
 
 export default function DashboardLayout({
   children,
@@ -41,82 +34,14 @@ export default function DashboardLayout({
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState(defaultUserInfo);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isLoading, error } = useUser();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { hasUnreadNotifications, notifications } = useNotifications();
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-  
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
   const toggleModal = () => {
     setIsModalOpen(!isModalOpen);
   };
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch("/api/user/me", {
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          // If not authenticated, redirect immediately
-          router.replace("/");
-          return;
-        }
-
-        const result = await response.json();
-
-        // Check user role and redirect if needed
-        if (result.role === "SUPERADMIN") {
-          toast.error("Please use the Super Admin dashboard");
-          router.replace("/super-admin/home");
-          return;
-        } else if (result.role === "ADMIN") {
-          toast.error("Please use the Admin dashboard");
-          router.replace("/admin/home");
-          return;
-        }
-
-        setUser({
-          ...result,
-        });
-      } catch (err: unknown) {
-        const error =
-          err instanceof Error ? err : new Error("Unknown error occurred");
-        console.error("Error fetching user data:", error);
-        setError(error.message);
-        toast.error("Failed to load user data");
-        // Redirect to login on any error
-        router.replace("/");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserData();
-
-    // Set up token refresh logic
-    const refreshToken = async () => {
-      try {
-        const response = await fetch("/api/auth/refresh", {
-          method: "POST",
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          router.replace("/");
-          toast.error("Session expired. Please log in again.");
-        }
-      } catch (error) {
-        console.error("Token refresh error:", error);
-      }
-    };
-
-    refreshToken();
-    const refreshInterval = setInterval(refreshToken, 14 * 60 * 1000);
-    return () => clearInterval(refreshInterval);
-  }, [router]);
 
   const logoutHandler = async () => {
     try {
@@ -132,13 +57,6 @@ export default function DashboardLayout({
       toast.error("Failed to logout");
     }
   };
-
-  // Let's add some debug logging to check the user data
-  useEffect(() => {
-    if (!isLoading && user) {
-      console.log("User data available for modal:", user);
-    }
-  }, [isLoading, user]);
 
   const links = [
     {
@@ -156,8 +74,8 @@ export default function DashboardLayout({
       ),
     },
     {
-      label: "Purchases",
-      href: "/dashboard/purchases",
+      label: "Participations",
+      href: "/dashboard/participations", 
       icon: (
         <BiPurchaseTagAlt className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
@@ -166,14 +84,21 @@ export default function DashboardLayout({
       label: "Results",
       href: "/dashboard/results",
       icon: (
-        <IconSettings className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+        <IconTrophy className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+      ),
+    },
+    {
+      label: "Treasure Hunt",
+      href: "/dashboard/treasure-hunt",
+      icon: (
+        <IconMapPin className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
     },
     {
       label: "Logout",
       href: "#",
       icon: (
-        <IconArrowLeft className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+        <IconLogout className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
@@ -214,12 +139,12 @@ export default function DashboardLayout({
           <div onClick={toggleProfileModal}>
             <SidebarLink
               link={{
-                label: isLoading ? "Loading..." : user.name,
+                label: isLoading ? "Loading..." : user?.name || "User",
                 href: "#",
                 icon: (
                   <Image
                     src={
-                      user.imageUrl ||
+                      user?.imageUrl ||
                       "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541"
                     }
                     className="h-8 w-8 flex-shrink-0 rounded-full"
@@ -294,17 +219,17 @@ export default function DashboardLayout({
         isOpen={isProfileModalOpen}
         onClose={toggleProfileModal}
         userInfo={{
-          name: user?.name || "User",
-          email: user?.email || "user@example.com",
-          phone: user?.phone || "",
+          id: user ? parseInt(user.id) : 0,
+          name: user?.name || "",
+          email: user?.email || "",
+          phone: user?.phone ?? null,
           college: user?.college || "",
           sic: user?.sic || "",
-          year: user?.year || "",
-          imageUrl:
-            user?.imageUrl ||
-            "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541",
-          eventParticipation: user?.eventParticipation || [] as { eventId: number; name: string; }[],
-          role: user?.role || "USER"
+          year: (user?.year || "FIRST_YEAR") as Year,
+          imageUrl: user?.imageUrl ?? null,
+          role: user?.role || "USER",
+          eventParticipants: user?.eventParticipants || [],
+          eventHeads: user?.eventHeads || [],
         }}
       />
     </div>

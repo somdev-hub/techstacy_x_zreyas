@@ -216,58 +216,6 @@ const Home = () => {
     });
   };
 
-  const onScanSuccess = useCallback(async (decodedText: string) => {
-    // Prevent multiple simultaneous scan attempts
-    if (scanInProgressRef.current) return;
-
-    try {
-      scanInProgressRef.current = true;
-
-      console.log("QR code scanned:", decodedText);
-
-      const response = await fetch("/api/events/mark-attendance", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ qrCode: decodedText }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to mark attendance");
-      }
-
-      const data = await response.json();
-      toast.success(
-        `Attendance marked for ${data.participant.name} - ${data.participant.event}`
-      );
-
-      // Refresh the attendance list
-      const refreshResponse = await fetch(
-        "/api/events/get-admin-event-attendance"
-      );
-      if (refreshResponse.ok) {
-        const refreshData = await refreshResponse.json();
-        setEventAttendance(refreshData);
-      }
-
-      // Reset scanning state
-      stopScanner();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to mark attendance"
-      );
-    } finally {
-      scanInProgressRef.current = false;
-    }
-  }, []);
-
-  const onScanFailure = (error: string | Error) => {
-    // Ignore scan failures as they happen frequently when no QR code is detected
-    // console.debug("QR code scan error:", error);
-  };
-
   const stopScanner = useCallback(() => {
     if (scannerRef.current) {
       try {
@@ -279,6 +227,61 @@ const Home = () => {
     }
     setIsScanning(false);
     setScannerInitialized(false);
+  }, []);
+
+  const onScanSuccess = useCallback(
+    async (decodedText: string) => {
+      // Prevent multiple simultaneous scan attempts
+      if (scanInProgressRef.current) return;
+
+      try {
+        scanInProgressRef.current = true;
+
+        console.log("QR code scanned:", decodedText);
+
+        const response = await fetch("/api/events/mark-attendance", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ qrCode: decodedText }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to mark attendance");
+        }
+
+        const data = await response.json();
+        toast.success(
+          `Attendance marked for ${data.participant.name} - ${data.participant.event}`
+        );
+
+        // Refresh the attendance list
+        const refreshResponse = await fetch(
+          "/api/events/get-admin-event-attendance"
+        );
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          setEventAttendance(refreshData);
+        }
+
+        // Reset scanning state
+        stopScanner();
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to mark attendance"
+        );
+      } finally {
+        scanInProgressRef.current = false;
+      }
+    },
+    [stopScanner]
+  );
+
+  const onScanFailure = useCallback((error: string | Error) => {
+    // Ignore scan failures as they happen frequently when no QR code is detected
+    // console.debug("QR code scan error:", error);
   }, []);
 
   const startScanner = useCallback(() => {

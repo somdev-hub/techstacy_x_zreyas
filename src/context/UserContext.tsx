@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
   ReactNode,
+  useCallback,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
@@ -72,7 +73,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     // Skip API calls on home page
     if (pathname === "/") {
       setUser(null);
@@ -117,7 +118,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [pathname, router]);
 
   useEffect(() => {
     // Skip everything if on home page
@@ -148,7 +149,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return () => {
       clearInterval(refreshInterval);
     };
-  }, [pathname]);
+  }, [fetchUser, pathname, router]);
 
   return (
     <UserContext.Provider

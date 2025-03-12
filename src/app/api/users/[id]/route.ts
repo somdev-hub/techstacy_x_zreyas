@@ -71,10 +71,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = parseInt(context.params.id);
+    const userId = parseInt((await params).id);
     const formData = await request.formData();
 
     // Handle image upload if present

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { userFromRequest } from "@/lib/auth";
 import { sseConnectionRateLimit, checkRateLimit } from "@/lib/rate-limit";
+import { getConnectionStats } from "@/lib/sse-utility";
 
 // Track active connections with connection limits
 const MAX_CONNECTIONS_PER_USER = 3;
@@ -223,47 +224,3 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Helper functions for sending notifications
-export function getConnectionStats() {
-  return {
-    totalConnections: connections.size,
-    totalUsers: userConnections.size,
-    connectionsPerUser: Array.from(userConnections.entries()).map(
-      ([userId, controllers]) => ({
-        userId,
-        connections: controllers.size,
-      })
-    ),
-  };
-}
-
-function sendUserNotification(userId: number, data: NotificationData) {
-  const userControllers = userConnections.get(userId);
-  if (!userControllers) return;
-
-  const deadControllers = new Set<ReadableStreamDefaultController<string>>();
-
-  userControllers.forEach((controller) => {
-    try {
-      const message = `data: ${JSON.stringify({
-        type: "notification",
-        data,
-        timestamp: new Date().toISOString(),
-      })}\n\n`;
-      controller.enqueue(message);
-    } catch (error) {
-      console.error("Failed to send notification to user:", userId, error);
-      deadControllers.add(controller);
-    }
-  });
-
-  // Cleanup dead controllers after iteration
-  if (deadControllers.size > 0) {
-    deadControllers.forEach(controller => {
-      userControllers.delete(controller);
-    });
-    if (userControllers.size === 0) {
-      userConnections.delete(userId);
-    }
-  }
-}

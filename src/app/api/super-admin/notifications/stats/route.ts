@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { userFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getConnectionStats } from "@/app/api/notifications/sse/route";
+import { getConnectionStats } from "@/lib/sse-utility";
 
 export async function GET(req: NextRequest) {
   try {

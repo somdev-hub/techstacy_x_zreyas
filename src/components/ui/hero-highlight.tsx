@@ -12,8 +12,8 @@ export const HeroHighlight = ({
   className?: string;
   containerClassName?: string;
 }) => {
-  const mouseX = window.innerWidth / 2;
-  const mouseY = window.innerHeight / 2;
+  const mouseX = useMotionValue(window.innerWidth / 2);
+  const mouseY = useMotionValue(window.innerHeight / 2);
 
   function handleMouseMove({
     currentTarget,

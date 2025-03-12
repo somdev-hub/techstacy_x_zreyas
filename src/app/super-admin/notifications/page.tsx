@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, JSX } from "react";
 import {
   Table,
   TableBody,
@@ -260,7 +260,8 @@ export default function NotificationsManagement(): JSX.Element {
 
       toast.success(`Purged ${data.deletedCount} old notifications`);
       fetchStats();
-    } catch (err) { // Rename error to err since we're using it
+    } catch (err) {
+      // Rename error to err since we're using it
       console.error("Failed to purge notifications:", err);
       toast.error("Failed to purge old notifications");
     }
@@ -283,14 +284,15 @@ export default function NotificationsManagement(): JSX.Element {
 
       toast.success(data.message);
       fetchStats();
-    } catch (err) { // Rename error to err since we're using it
+    } catch (err) {
+      // Rename error to err since we're using it
       console.error("Failed to retry notifications:", err);
       toast.error("Failed to retry failed notifications");
     }
   };
 
   if (!user) {
-    return null; // Let the useEffect handle the redirect
+    return <div></div>; // Let the useEffect handle the redirect
   }
 
   if (loading) {
@@ -488,7 +490,10 @@ export default function NotificationsManagement(): JSX.Element {
                         ...prev,
                         userType: value,
                         // Reset event selection when changing user type
-                        eventName: value !== "EVENT_PARTICIPANTS" ? undefined : prev.eventName,
+                        eventName:
+                          value !== "EVENT_PARTICIPANTS"
+                            ? undefined
+                            : prev.eventName,
                       }))
                     }
                   >
@@ -499,7 +504,9 @@ export default function NotificationsManagement(): JSX.Element {
                       <SelectItem value="ALL">All Users</SelectItem>
                       <SelectItem value="USER">Regular Users</SelectItem>
                       <SelectItem value="ADMIN">Administrators</SelectItem>
-                      <SelectItem value="EVENT_PARTICIPANTS">Event Participants</SelectItem>
+                      <SelectItem value="EVENT_PARTICIPANTS">
+                        Event Participants
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -567,15 +574,29 @@ export default function NotificationsManagement(): JSX.Element {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="GENERAL">General</SelectItem>
-                      <SelectItem value="EVENT_REMINDER">Event Reminder</SelectItem>
+                      <SelectItem value="EVENT_REMINDER">
+                        Event Reminder
+                      </SelectItem>
                       <SelectItem value="ANNOUNCEMENT">Announcement</SelectItem>
-                      <SelectItem value="RESULT_DECLARATION">Result Declaration</SelectItem>
+                      <SelectItem value="RESULT_DECLARATION">
+                        Result Declaration
+                      </SelectItem>
                       <SelectItem value="TEAM_INVITE">Team Invite</SelectItem>
-                      <SelectItem value="INVITE_ACCEPTED">Invite Accepted</SelectItem>
-                      <SelectItem value="INVITE_REJECTED">Invite Rejected</SelectItem>
-                      <SelectItem value="EVENT_CANCELLED">Event Cancelled</SelectItem>
-                      <SelectItem value="POSITION_UPDATE">Position Update</SelectItem>
-                      <SelectItem value="QUALIFICATION_UPDATE">Qualification Update</SelectItem>
+                      <SelectItem value="INVITE_ACCEPTED">
+                        Invite Accepted
+                      </SelectItem>
+                      <SelectItem value="INVITE_REJECTED">
+                        Invite Rejected
+                      </SelectItem>
+                      <SelectItem value="EVENT_CANCELLED">
+                        Event Cancelled
+                      </SelectItem>
+                      <SelectItem value="POSITION_UPDATE">
+                        Position Update
+                      </SelectItem>
+                      <SelectItem value="QUALIFICATION_UPDATE">
+                        Qualification Update
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -591,7 +612,7 @@ export default function NotificationsManagement(): JSX.Element {
                     Sending...
                   </>
                 ) : (
-                  'Send Notifications'
+                  "Send Notifications"
                 )}
               </button>
             </div>

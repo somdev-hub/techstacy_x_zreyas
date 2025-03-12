@@ -15,8 +15,8 @@ interface EventData {
   time: string;
   description: string;
   imageUrl: string;
-  eventName: Events;
-  participationType: ParticipationType;
+  eventName: string;
+  participationType: string;
   eventType: EventType;
   registrationFee: number;
   prizePool: number;
@@ -79,6 +79,11 @@ export function ThreeDCard({ info, isEvent = false }: ThreeDCardProps) {
     }
   };
 
+  const handleMainButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event modal from opening
+    info?.mainButton?.onClick?.();
+  };
+
   return (
     <>
       {/* Wrap with a div that has the onClick handler */}
@@ -139,7 +144,7 @@ export function ThreeDCard({ info, isEvent = false }: ThreeDCardProps) {
                       <CardItem
                         translateZ={20}
                         as="button"
-                        onClick={info.mainButton?.onClick}
+                        onClick={handleMainButtonClick}
                         className="px-4 py-2 rounded-xl bg-white text-black text-xs font-bold"
                       >
                         {info.mainButton?.text || "Sign up"}

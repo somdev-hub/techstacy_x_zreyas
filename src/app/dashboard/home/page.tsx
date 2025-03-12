@@ -33,7 +33,9 @@ interface EventApiResponse {
   eventName: string;
   participationType: string;
   eventType: EventType;
+  registrationFee?: number;
   prizePool?: number;
+  partialRegistration?: boolean;
 }
 
 const Home = () => {
@@ -48,6 +50,14 @@ const Home = () => {
   const userHook = useUser();
   const [roboRaceEvent, setRoboRaceEvent] = useState<EventData | null>(null);
 
+  const handleTshirtOrder = async () => {
+    if (!userHook.user?.id) {
+      toast.error("Please login to order a t-shirt");
+      return;
+    }
+    // Add your t-shirt order logic here
+  };
+
   const tshirtCard = {
     title: "Get your event t-shirt",
     description:
@@ -56,11 +66,10 @@ const Home = () => {
     mainButton: {
       type: "button",
       text: "Order Now",
-      onClick: () => {
-        // Redirect to the t-shirt order page
-      },
+      onClick: handleTshirtOrder,
       razorpay: true,
-      paymentButtonId: "pl_PjDCUxfpQR0y5x", // Replace with your actual Razorpay payment button ID
+      paymentButtonId:
+        process.env.NEXT_PUBLIC_RAZORPAY_TSHIRT_BUTTON_ID || "pl_PjDCUxfpQR0y5x",
     },
   };
 
@@ -86,9 +95,9 @@ const Home = () => {
             eventName: event.eventName,
             participationType: event.participationType,
             eventType: event.eventType,
-            registrationFee: 0, // Default to 0 if not specified
+            registrationFee: event.registrationFee || 0, // Default to 0 if not specified
             prizePool: event.prizePool || 0,
-            partialRegistration: false, // Default to false if not specified
+            partialRegistration: event.partialRegistration || false, // Default to false if not specified
           })
         );
 

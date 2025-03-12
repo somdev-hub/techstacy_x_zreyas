@@ -54,16 +54,16 @@ const eventFormSchema = z.object({
     required_error: "Please select a participation type",
   }),
   partialRegistration: z.boolean().default(false),
-  image: z.any()
+  image: z.any(),
 });
 
 type AdminFormValues = z.infer<typeof adminFormSchema>;
 type EventFormValues = z.infer<typeof eventFormSchema>;
 
 type EventParticipant = {
-  id: number;  // Changed from string to number to match API
+  id: number; // Changed from string to number to match API
   eventId: number;
-  userId: number;  // Changed from string to number to match API
+  userId: number; // Changed from string to number to match API
   user: {
     id: number;
     name: string;
@@ -102,26 +102,36 @@ type TeamMember = {
   id: string;
   name: string;
   year: Year;
+  sic: string; // Added SIC to team members
   imageUrl: string | null;
+  eventName?: Events; // Added optional eventName property
 };
 
 const Home = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAdminSubmitting, setIsAdminSubmitting] = useState(false);
-  const [teamParticipants, setTeamParticipants] = useState<EventParticipant[]>([]);
-  const [allEvents, setAllEvents] = useState<{
-    event: Events;
-    eventType: EventType;
-    participationType: ParticipationType;
-    totalParticipants: number;
-    eventId: number;
-  }[]>([]);
-  const [totalParticipants, setTotalParticipants] = useState<{[key: string]: number}>({});
+  const [teamParticipants, setTeamParticipants] = useState<EventParticipant[]>(
+    []
+  );
+  const [allEvents, setAllEvents] = useState<
+    {
+      event: Events;
+      eventType: EventType;
+      participationType: ParticipationType;
+      totalParticipants: number;
+      eventId: number;
+    }[]
+  >([]);
+  const [totalParticipants, setTotalParticipants] = useState<{
+    [key: string]: number;
+  }>({});
   const [loading, setLoading] = useState(true);
-  const [participantsFilterEventType, setParticipantsFilterEventType] = useState('');
-  const [participantsFilterEventName, setParticipantsFilterEventName] = useState('');
-  const [summaryFilterEventType, setSummaryFilterEventType] = useState('');
-  const [summaryFilterEventName, setSummaryFilterEventName] = useState('');
+  const [participantsFilterEventType, setParticipantsFilterEventType] =
+    useState("");
+  const [participantsFilterEventName, setParticipantsFilterEventName] =
+    useState("");
+  const [summaryFilterEventType, setSummaryFilterEventType] = useState("");
+  const [summaryFilterEventName, setSummaryFilterEventName] = useState("");
   const [selectedTeam, setSelectedTeam] = useState<{
     leader: TeamMember;
     members: TeamMember[];
@@ -133,8 +143,8 @@ const Home = () => {
       try {
         setLoading(true);
         const [participantsRes, totalsRes] = await Promise.all([
-          fetch('/api/events/get-event-participants'),
-          fetch('/api/events/total-participantts')
+          fetch("/api/events/get-event-participants"),
+          fetch("/api/events/total-participantts"),
         ]);
 
         const participantsData = await participantsRes.json();
@@ -154,15 +164,14 @@ const Home = () => {
               eventType: participant.event.eventType,
               participationType: participant.event.participationType,
               totalParticipants: totalsData[participant.eventId] || 0,
-              eventId: participant.eventId
+              eventId: participant.eventId,
             });
           }
         });
         setAllEvents(Array.from(uniqueEvents.values()));
-        
       } catch (error) {
-        console.error('Failed to fetch data:', error);
-        toast.error('Failed to fetch participants data');
+        console.error("Failed to fetch data:", error);
+        toast.error("Failed to fetch participants data");
       } finally {
         setLoading(false);
       }
@@ -173,20 +182,30 @@ const Home = () => {
 
   // Filter participants for team leaders table - updated to ensure we only get team leaders
   const filteredParticipants = React.useMemo(() => {
-    return teamParticipants.filter(participant => {
+    return teamParticipants.filter((participant) => {
       // Only include participants that are team leaders (mainParticipantId is null)
       const isTeamLeader = participant.mainParticipantId === null;
-      const matchesEventType = !participantsFilterEventType || participant.event.eventType === participantsFilterEventType;
-      const matchesEventName = !participantsFilterEventName || participant.event.eventName === participantsFilterEventName;
+      const matchesEventType =
+        !participantsFilterEventType ||
+        participant.event.eventType === participantsFilterEventType;
+      const matchesEventName =
+        !participantsFilterEventName ||
+        participant.event.eventName === participantsFilterEventName;
       return isTeamLeader && matchesEventType && matchesEventName;
     });
-  }, [teamParticipants, participantsFilterEventType, participantsFilterEventName]);
+  }, [
+    teamParticipants,
+    participantsFilterEventType,
+    participantsFilterEventName,
+  ]);
 
   // Filter events for summary table
   const filteredEvents = React.useMemo(() => {
-    return allEvents.filter(event => {
-      const matchesEventType = !summaryFilterEventType || event.eventType === summaryFilterEventType;
-      const matchesEventName = !summaryFilterEventName || event.event === summaryFilterEventName;
+    return allEvents.filter((event) => {
+      const matchesEventType =
+        !summaryFilterEventType || event.eventType === summaryFilterEventType;
+      const matchesEventName =
+        !summaryFilterEventName || event.event === summaryFilterEventName;
       return matchesEventType && matchesEventName;
     });
   }, [allEvents, summaryFilterEventType, summaryFilterEventName]);
@@ -204,7 +223,7 @@ const Home = () => {
     register: registerEvent,
     handleSubmit: handleEventSubmit,
     formState: { errors: eventErrors },
-    reset: resetEventForm
+    reset: resetEventForm,
   } = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
   });
@@ -212,10 +231,10 @@ const Home = () => {
   const onAdminSubmit = async (data: AdminFormValues) => {
     try {
       setIsAdminSubmitting(true);
-      const response = await fetch('/api/create-admin', {
-        method: 'POST',
+      const response = await fetch("/api/create-admin", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
@@ -223,14 +242,18 @@ const Home = () => {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to create admin');
+        throw new Error(result.error || "Failed to create admin");
       }
 
-      toast.success('Admin created successfully. Share the credentials with the admin.');
+      toast.success(
+        "Admin created successfully. Share the credentials with the admin."
+      );
       resetAdminForm();
     } catch (error) {
-      console.error('Failed to create admin:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create admin');
+      console.error("Failed to create admin:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create admin"
+      );
     } finally {
       setIsAdminSubmitting(false);
     }
@@ -240,40 +263,45 @@ const Home = () => {
     try {
       setIsSubmitting(true);
       const formData = new FormData();
-      
+
       // Add all form fields
-      formData.append('name', data.name);
-      formData.append('eventName', data.eventName);
-      formData.append('prizePool', data.prizePool);
-      formData.append('description', data.description);
-      formData.append('venue', data.venue);
-      formData.append('date', data.date);
-      formData.append('time', data.time);
-      formData.append('eventType', data.eventType);
-      formData.append('participationType', data.participationType);
-      formData.append('partialRegistration', data.partialRegistration ? 'true' : 'false');
-      
+      formData.append("name", data.name);
+      formData.append("eventName", data.eventName);
+      formData.append("prizePool", data.prizePool);
+      formData.append("description", data.description);
+      formData.append("venue", data.venue);
+      formData.append("date", data.date);
+      formData.append("time", data.time);
+      formData.append("eventType", data.eventType);
+      formData.append("participationType", data.participationType);
+      formData.append(
+        "partialRegistration",
+        data.partialRegistration ? "true" : "false"
+      );
+
       if (data.image?.[0]) {
-        formData.append('image', data.image[0]);
+        formData.append("image", data.image[0]);
       }
 
       // Use standardized route
-      const response = await fetch('/api/events', {
-        method: 'POST',
+      const response = await fetch("/api/events", {
+        method: "POST",
         body: formData,
       });
 
       const result = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to create event');
+        throw new Error(result.error || "Failed to create event");
       }
 
-      toast.success('Event created successfully');
+      toast.success("Event created successfully");
       resetEventForm(); // Reset form after successful submission
     } catch (error) {
-      console.error('Failed to create event:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create event');
+      console.error("Failed to create event:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create event"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -281,12 +309,12 @@ const Home = () => {
 
   // Function to get team members for a leader
   const getTeamMembers = (participant: EventParticipant) => {
-    return participant.otherParticipants.map(member => ({
+    return participant.otherParticipants.map((member) => ({
       id: member.id.toString(),
       name: member.user.name,
       year: member.user.year,
       imageUrl: member.user.imageUrl,
-      sic: member.user.sic // Add SIC to team members
+      sic: member.user.sic, // Add SIC to team members
     }));
   };
 
@@ -300,9 +328,9 @@ const Home = () => {
         year: participant.user.year,
         imageUrl: participant.user.imageUrl,
         sic: participant.user.sic, // Add SIC to leader
-        eventName: participant.event.eventName // Add event name
+        eventName: participant.event.eventName, // Add event name
       },
-      members: teamMembers
+      members: teamMembers,
     });
   };
 
@@ -316,10 +344,12 @@ const Home = () => {
                 Teams by Event
               </h1>
               <div className="flex gap-3">
-                <select 
+                <select
                   className="bg-neutral-700 rounded-md px-2 py-1 text-sm md:text-base"
                   value={participantsFilterEventType}
-                  onChange={(e) => setParticipantsFilterEventType(e.target.value)}
+                  onChange={(e) =>
+                    setParticipantsFilterEventType(e.target.value)
+                  }
                 >
                   <option value="">Event Type</option>
                   {Object.values(EventType).map((eventType, key) => (
@@ -328,10 +358,12 @@ const Home = () => {
                     </option>
                   ))}
                 </select>
-                <select 
+                <select
                   className="bg-neutral-700 rounded-md px-2 py-1 text-sm md:text-base"
                   value={participantsFilterEventName}
-                  onChange={(e) => setParticipantsFilterEventName(e.target.value)}
+                  onChange={(e) =>
+                    setParticipantsFilterEventName(e.target.value)
+                  }
                 >
                   <option value="">Event Name</option>
                   {Object.values(Events).map((event, key) => (
@@ -357,33 +389,50 @@ const Home = () => {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center p-4">Loading...</TableCell>
+                      <TableCell colSpan={6} className="text-center p-4">
+                        Loading...
+                      </TableCell>
                     </TableRow>
                   ) : filteredParticipants.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center p-4">No teams found</TableCell>
+                      <TableCell colSpan={6} className="text-center p-4">
+                        No teams found
+                      </TableCell>
                     </TableRow>
                   ) : (
                     filteredParticipants.map((participant) => {
                       const teamSize = participant.otherParticipants.length + 1; // +1 for the leader
                       return (
-                        <TableRow key={participant.id} className="border-b border-neutral-700">
+                        <TableRow
+                          key={participant.id}
+                          className="border-b border-neutral-700"
+                        >
                           <TableCell>{participant.user.name}</TableCell>
                           <TableCell>{participant.user.sic}</TableCell>
-                          <TableCell>{participant.user.year.replace('_', ' ')}</TableCell>
+                          <TableCell>
+                            {participant.user.year.replace("_", " ")}
+                          </TableCell>
                           <TableCell>{participant.event.eventName}</TableCell>
                           <TableCell>
-                            {teamSize} 
+                            {teamSize}
                             {participant.event.participationType !== "SOLO" && (
                               <span className="text-xs text-neutral-400 ml-1">
-                                ({participant.event.participationType === "DUO" ? "2" :
-                                  participant.event.participationType === "QUAD" ? "4" : 
-                                  participant.event.participationType === "QUINTET" ? "5" : "2+"} required)
+                                (
+                                {participant.event.participationType === "DUO"
+                                  ? "2"
+                                  : participant.event.participationType ===
+                                    "QUAD"
+                                  ? "4"
+                                  : participant.event.participationType ===
+                                    "QUINTET"
+                                  ? "5"
+                                  : "2+"}{" "}
+                                required)
                               </span>
                             )}
                           </TableCell>
                           <TableCell>
-                            <button 
+                            <button
                               className="bg-blue-600 px-3 py-1 rounded-md"
                               onClick={() => handleViewTeam(participant)}
                             >
@@ -515,14 +564,30 @@ const Home = () => {
                 >
                   {isAdminSubmitting ? (
                     <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                       Creating...
                     </>
                   ) : (
-                    'Add'
+                    "Add"
                   )}
                 </button>
               </form>
@@ -675,7 +740,7 @@ const Home = () => {
                   )}
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -683,14 +748,18 @@ const Home = () => {
                   {...registerEvent("partialRegistration")}
                   className="rounded bg-neutral-700 border-neutral-500 text-blue-600 focus:ring-blue-500 h-4 w-4"
                 />
-                <label htmlFor="partialRegistration" className="text-sm text-neutral-300">
+                <label
+                  htmlFor="partialRegistration"
+                  className="text-sm text-neutral-300"
+                >
                   Allow partial team registration
                 </label>
               </div>
               <div className="text-xs text-neutral-400 -mt-2">
-                If enabled, teams can register with fewer members than required by the participation type
+                If enabled, teams can register with fewer members than required
+                by the participation type
               </div>
-              
+
               <div>
                 <label className="flex items-center h-10 bg-neutral-700 rounded-md px-3 cursor-pointer">
                   <input
@@ -700,7 +769,7 @@ const Home = () => {
                     className="w-full text-sm text-white appearance-none file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:text-white file:bg-blue-600 hover:file:bg-blue-700 file:cursor-pointer focus:outline-none file:h-7 h-7"
                   />
                 </label>
-                {typeof eventErrors.image?.message === 'string' && (
+                {typeof eventErrors.image?.message === "string" && (
                   <p className="text-red-500 text-sm mt-1">
                     {eventErrors.image.message}
                   </p>
@@ -713,14 +782,30 @@ const Home = () => {
               >
                 {isSubmitting ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Creating...
                   </>
                 ) : (
-                  'Add'
+                  "Add"
                 )}
               </button>
             </form>
@@ -732,7 +817,7 @@ const Home = () => {
                   Participants by event
                 </h1>
                 <div className="flex gap-4">
-                  <select 
+                  <select
                     className="bg-neutral-700 rounded-md px-2 py-1 text-sm md:text-base"
                     value={summaryFilterEventType}
                     onChange={(e) => setSummaryFilterEventType(e.target.value)}
@@ -744,7 +829,7 @@ const Home = () => {
                       </option>
                     ))}
                   </select>
-                  <select 
+                  <select
                     className="bg-neutral-700 rounded-md px-2 py-1 text-sm md:text-base"
                     value={summaryFilterEventName}
                     onChange={(e) => setSummaryFilterEventName(e.target.value)}
@@ -764,23 +849,34 @@ const Home = () => {
                     <TableRow className="border-b border-neutral-700 hover:bg-transparent">
                       <TableHead className="text-left">Event</TableHead>
                       <TableHead className="text-left">Event Type</TableHead>
-                      <TableHead className="text-left">Participation Type</TableHead>
-                      <TableHead className="text-left">Total Participants</TableHead>
+                      <TableHead className="text-left">
+                        Participation Type
+                      </TableHead>
+                      <TableHead className="text-left">
+                        Total Participants
+                      </TableHead>
                       <TableHead className="text-left">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center p-4">Loading...</TableCell>
+                        <TableCell colSpan={5} className="text-center p-4">
+                          Loading...
+                        </TableCell>
                       </TableRow>
                     ) : filteredEvents.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center p-4">No events found</TableCell>
+                        <TableCell colSpan={5} className="text-center p-4">
+                          No events found
+                        </TableCell>
                       </TableRow>
                     ) : (
                       filteredEvents.map((event, index) => (
-                        <TableRow key={index} className="border-b border-neutral-700">
+                        <TableRow
+                          key={index}
+                          className="border-b border-neutral-700"
+                        >
                           <TableCell>{event.event}</TableCell>
                           <TableCell>{event.eventType}</TableCell>
                           <TableCell>{event.participationType}</TableCell>

@@ -162,20 +162,21 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
       setIsSubmitting(true);
       const formData = new FormData();
 
+      formData.append("eventKey", active.eventName); // Add event key
       // Add all form fields to formData
       Object.entries(data).forEach(([key, value]) => {
         if (key === "image" && value?.[0]) {
           formData.append("image", value[0]);
         } else if (key === "partialRegistration") {
           formData.append(key, value ? "true" : "false");
-        } else if (value !== undefined) {
+        } else if (value !== undefined && value !== null) {
           formData.append(key, value.toString());
         }
       });
 
       await handleUpdateEvent(active.id, formData);
       setIsEditing(false);
-      window.location.reload(); // Refresh to show updated data
+      window.location.reload();
     } catch (error) {
       console.error("Failed to update event:", error);
     } finally {
@@ -354,16 +355,9 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
           <label className="flex items-center h-10 bg-neutral-700 rounded-md px-3 cursor-pointer">
             <input
               type="file"
-              name="image"
               accept="image/*"
               {...register("image")}
               className="w-full text-sm text-white appearance-none file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:text-white file:bg-blue-600 hover:file:bg-blue-700 file:cursor-pointer focus:outline-none file:h-7 h-7"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  formData.set("image", file);
-                }
-              }}
             />
           </label>
         </div>

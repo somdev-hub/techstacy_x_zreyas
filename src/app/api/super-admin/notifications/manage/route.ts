@@ -6,6 +6,10 @@ import {
   Role,
   Year,
 } from "@prisma/client";
+
+interface NotificationMetadata {
+  [key: string]: any;
+}
 import { verifyAccessToken } from "@/lib/jose-auth";
 import { NotificationService } from "@/lib/notification-service";
 import { cookies } from "next/headers";
@@ -175,7 +179,7 @@ export async function POST(req: NextRequest) {
                   metadata:
                     typeof notification.metadata === "object" &&
                     notification.metadata !== null
-                      ? notification.metadata
+                      ? (notification.metadata as NotificationMetadata)
                       : {},
                 });
 

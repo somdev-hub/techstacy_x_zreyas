@@ -101,7 +101,7 @@ export async function PATCH(
 
 // Delete event
 export async function DELETE(
-  req: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {

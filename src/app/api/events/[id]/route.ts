@@ -102,10 +102,11 @@ export async function PATCH(
 // Delete event
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const eventId = parseInt(params.id);
+    // const { id } = use(params);
+    const eventId = parseInt((await params).id);
 
     // Verify event exists
     const event = await prisma.event.findUnique({

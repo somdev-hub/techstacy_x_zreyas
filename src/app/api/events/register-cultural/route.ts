@@ -9,46 +9,42 @@ export async function POST(req: NextRequest) {
     const data = await req.json();
     const { eventId, otherParticipants } = data;
 
-    const headersList = headers();
+    const headersList = await headers();
     const protocol = req.nextUrl.protocol;
-    const host = headersList.get('host') || req.nextUrl.host;
+    const host = headersList.get("host") || req.nextUrl.host;
     const baseUrl = `${protocol}//${host}`;
 
     // Get user from /api/user/me with constructed URL
     const userResponse = await fetch(`${baseUrl}/api/user/me`, {
       headers: {
-        'Cookie': headersList.get('cookie') || '',
-        'Host': host
-      }
+        Cookie: headersList.get("cookie") || "",
+        Host: host,
+      },
     });
 
     if (!userResponse.ok) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = await userResponse.json();
     const userId = user.id;
 
     if (!eventId) {
-      return NextResponse.json(
-        { error: "Missing eventId" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing eventId" }, { status: 400 });
     }
 
     const event = await prisma.event.findUnique({
       where: { id: Number(eventId) },
-      select: { id: true, participationType: true, eventType: true, partialRegistration: true }
+      select: {
+        id: true,
+        participationType: true,
+        eventType: true,
+        partialRegistration: true,
+      },
     });
 
     if (!event) {
-      return NextResponse.json(
-        { error: "Event not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
     if (event.eventType !== "CULTURAL") {
@@ -70,29 +66,31 @@ export async function POST(req: NextRequest) {
           user: {
             select: {
               name: true,
-              email: true
-            }
-          }
-        }
+              email: true,
+            },
+          },
+        },
       });
 
       await prisma.user.update({
         where: { id: Number(userId) },
         data: {
           eventParticipation: {
-            increment: 1
-          }
-        }
+            increment: 1,
+          },
+        },
       });
 
       return NextResponse.json({
         message: "Solo registration successful",
-        registration
+        registration,
       });
     }
 
     // For team events
-    const participantCount = otherParticipants ? otherParticipants.length + 1 : 1;
+    const participantCount = otherParticipants
+      ? otherParticipants.length + 1
+      : 1;
 
     // Skip validation if partialRegistration is enabled
     if (!event.partialRegistration) {
@@ -133,7 +131,12 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // When partialRegistration is enabled, still enforce minimum requirements
-      if (event.participationType !== "SOLO" && participantCount < 1) {
+      if (
+        ["DUO", "TRIO", "QUAD", "QUINTET", "GROUP"].includes(
+          event.participationType
+        ) &&
+        participantCount < 1
+      ) {
         return NextResponse.json(
           { error: "At least one participant is required" },
           { status: 400 }
@@ -151,15 +154,15 @@ export async function POST(req: NextRequest) {
       include: {
         user: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
         event: {
           select: {
-            name: true
-          }
-        }
-      }
+            name: true,
+          },
+        },
+      },
     });
 
     // Create registrations for other team members
@@ -171,8 +174,8 @@ export async function POST(req: NextRequest) {
             eventId: Number(eventId),
             userId: Number(participant.userId),
             isConfirmed: false,
-            mainParticipantId: mainRegistration.id
-          }
+            mainParticipantId: mainRegistration.id,
+          },
         });
 
         // Create notification record
@@ -186,9 +189,9 @@ export async function POST(req: NextRequest) {
               participantId: registration.id,
               eventId: eventId,
               mainParticipantId: mainRegistration.id,
-              mainParticipantName: mainRegistration.user.name
-            }
-          }
+              mainParticipantName: mainRegistration.user.name,
+            },
+          },
         });
 
         return registration;
@@ -201,26 +204,26 @@ export async function POST(req: NextRequest) {
         where: { id: Number(userId) },
         data: {
           eventParticipation: {
-            increment: 1
-          }
-        }
+            increment: 1,
+          },
+        },
       }),
       ...otherParticipants.map((participant: { userId: string }) =>
         prisma.user.update({
           where: { id: Number(participant.userId) },
           data: {
             eventParticipation: {
-              increment: 1
-            }
-          }
+              increment: 1,
+            },
+          },
         })
-      )
+      ),
     ]);
 
     return NextResponse.json({
       message: "Team registration successful",
       mainRegistration,
-      otherRegistrations
+      otherRegistrations,
     });
   } catch (error) {
     console.error("Error registering for cultural event:", error);

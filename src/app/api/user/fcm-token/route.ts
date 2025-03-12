@@ -10,32 +10,32 @@ export async function POST(req: NextRequest) {
     const { fcmToken } = data;
 
     if (!fcmToken) {
-      console.error('Missing FCM token in request');
+      console.error("Missing FCM token in request");
       return NextResponse.json(
         { error: "FCM token is required" },
         { status: 400 }
       );
     }
 
-    const headersList = headers();
+    const headersList = await headers();
     const origin = req.nextUrl.origin;
-    console.log('Request origin:', origin);
-    console.log('Request headers:', Object.fromEntries(headersList.entries()));
+    console.log("Request origin:", origin);
+    console.log("Request headers:", Object.fromEntries(headersList.entries()));
 
     // Get user from /api/user/me
     const userResponse = await fetch(`${origin}/api/user/me`, {
       headers: {
-        'Cookie': headersList.get('cookie') || '',
-        'Host': headersList.get('host') || '',
-      }
+        Cookie: headersList.get("cookie") || "",
+        Host: headersList.get("host") || "",
+      },
     });
 
     if (!userResponse.ok) {
       const errorText = await userResponse.text();
-      console.error('User authentication failed:', {
+      console.error("User authentication failed:", {
         status: userResponse.status,
         statusText: userResponse.statusText,
-        error: errorText
+        error: errorText,
       });
       return NextResponse.json(
         { error: "Unauthorized - Failed to verify user" },
@@ -44,28 +44,25 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await userResponse.json();
-    console.log('User data retrieved:', { id: user.id, email: user.email });
+    console.log("User data retrieved:", { id: user.id, email: user.email });
 
     if (!user.id) {
-      console.error('Invalid user data:', user);
-      return NextResponse.json(
-        { error: "Invalid user data" },
-        { status: 400 }
-      );
+      console.error("Invalid user data:", user);
+      return NextResponse.json({ error: "Invalid user data" }, { status: 400 });
     }
 
     // Update user's FCM token
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: { fcmToken },
-      select: { id: true, fcmToken: true }
+      select: { id: true, fcmToken: true },
     });
 
-    console.log('User FCM token updated:', updatedUser);
+    console.log("User FCM token updated:", updatedUser);
 
     return NextResponse.json({
       message: "FCM token updated successfully",
-      user: updatedUser
+      user: updatedUser,
     });
   } catch (error) {
     console.error("Error updating FCM token:", error);

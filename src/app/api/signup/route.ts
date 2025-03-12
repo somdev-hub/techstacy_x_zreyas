@@ -3,8 +3,7 @@ import { signupSchema } from "@/lib/schemas";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { ZodError } from "zod";
-// import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
-import { cookies } from "next/headers";
+import crypto from "crypto";
 import {
   createAccessToken,
   createRefreshToken,
@@ -12,6 +11,10 @@ import {
 } from "@/lib/jose-auth";
 
 const prisma = new PrismaClient();
+
+// Constants for token expiry
+const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes
+const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days
 
 export async function POST(request: Request) {
   try {
@@ -82,19 +85,37 @@ export async function POST(request: Request) {
 
     // Store refresh token in database
     try {
-      // console.log(typeof refreshToken);
+      // Create hash of refresh token
+      const tokenHash = crypto
+        .createHash("sha256")
+        .update(refreshToken)
+        .digest("hex");
 
-      await prisma.refreshToken.create({
-        data: {
-          token: refreshToken,
-          userId: user.id,
-        },
+      // Handle refresh tokens in transaction
+      await prisma.$transaction(async (tx) => {
+        // Clean up old tokens
+        await tx.refreshToken.deleteMany({
+          where: {
+            OR: [{ userId: user.id }, { expiresAt: { lt: new Date() } }],
+          },
+        });
+
+        // Create new refresh token
+        await tx.refreshToken.create({
+          data: {
+            token: refreshToken,
+            tokenHash: tokenHash,
+            userId: user.id,
+            expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRY * 1000),
+          },
+        });
       });
     } catch (error) {
-      // console.log(user.id);
-      console.log(error instanceof Error ? error.message : "Unknown error");
-
-      // console.log("hello world");
+      console.error(
+        "Refresh token creation error:",
+        error instanceof Error ? error.message : "Unknown error"
+      );
+      throw error;
     }
 
     const { password: _, ...userWithoutPassword } = user;

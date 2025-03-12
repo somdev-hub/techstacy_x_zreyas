@@ -6,11 +6,11 @@ const prisma = new PrismaClient();
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { action: string } }
+  { params }: { params: Promise<{ action: string }> }
 ) {
   try {
     const { eventId, teamMemberId } = await req.json();
-    const action = params.action;
+    const action = (await params).action;
     console.log("action", action, eventId, teamMemberId);
 
     if (!eventId || !teamMemberId) {

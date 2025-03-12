@@ -4,10 +4,10 @@ import { NotificationService } from "@/lib/notification-service";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  {params}: {params: Promise<{ id: string }>}
 ) {
   try {
-    const notificationId = parseInt(params.id);
+    const notificationId = parseInt((await params).id);
     
     // Validate notification ID
     if (isNaN(notificationId)) {

@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  {params}: {params: Promise<{ id: string }>}
 ) {
   try {
     const cookieStore = await cookies();
@@ -27,7 +27,7 @@ export async function DELETE(
 
     // Delete the clue
     await prisma.clues.delete({
-      where: { id: parseInt(params.id) }
+      where: { id: parseInt((await params).id) }
     });
 
     return NextResponse.json({ success: true });
@@ -42,7 +42,7 @@ export async function DELETE(
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  {params}: {params: Promise<{ id: string }>}
 ) {
   try {
     const cookieStore = await cookies();
@@ -60,7 +60,7 @@ export async function PUT(
     const { firstClue, secondClue, thirdClue, finalClue } = await req.json();
 
     const clues = await prisma.clues.findUnique({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt((await params).id) },
       include: {
         firstClue: true,
         secondClue: true,

@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 export async function GET(
   _: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     // Get the userId from the route parameter

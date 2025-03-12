@@ -7,11 +7,11 @@ const prisma = new PrismaClient();
 // Update event
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const formData = await req.formData();
-    const eventId = parseInt(params.id);
+    const eventId = parseInt((await params).id);
 
     // Verify event exists
     const event = await prisma.event.findUnique({

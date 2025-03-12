@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  {params}: {params: Promise<{ id: string }>}
 ) {
   try {
     const cookieStore = await cookies();
@@ -26,7 +26,7 @@ export async function GET(
 
     // Get the clue pair
     const cluePair = await prisma.clues.findUnique({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt((await params).id) },
       include: {
         firstClue: true,
         secondClue: true,

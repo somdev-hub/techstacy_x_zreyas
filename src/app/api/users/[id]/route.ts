@@ -7,11 +7,11 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = parseInt(context.params.id);
-    
+    const userId = parseInt((await params).id);
+
     // Fetch the user with their event participations and event head roles
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -79,7 +79,7 @@ export async function PUT(
 
     // Handle image upload if present
     let imageUrl;
-    const image = formData.get('image') as File;
+    const image = formData.get("image") as File;
     if (image) {
       const buffer = Buffer.from(await image.arrayBuffer());
       const fileName = `users/${userId}-${Date.now()}-${image.name}`;
@@ -88,11 +88,11 @@ export async function PUT(
 
     // Create update data
     const updateData: any = {
-      name: formData.get('name') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      sic: formData.get('sic') as string,
-      year: formData.get('year') as string || undefined,
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      phone: formData.get("phone") as string,
+      sic: formData.get("sic") as string,
+      year: (formData.get("year") as string) || undefined,
     };
 
     // Add imageUrl if we have one
@@ -101,7 +101,7 @@ export async function PUT(
     }
 
     // Handle password if provided
-    const password = formData.get('password') as string;
+    const password = formData.get("password") as string;
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);
       updateData.password = hashedPassword;
@@ -114,13 +114,14 @@ export async function PUT(
     });
 
     // Handle managed events if present and user is admin
-    const managedEventsJson = formData.get('managedEvents') as string;
+    const managedEventsJson = formData.get("managedEvents") as string;
     if (managedEventsJson && updatedUser.role === "ADMIN") {
       const managedEvents = JSON.parse(managedEventsJson) as string[];
-      
+
       // Validate that all events are valid enum values
-      const validEvents = managedEvents.filter((eventName): eventName is Events => 
-        Object.values(Events).includes(eventName as Events)
+      const validEvents = managedEvents.filter(
+        (eventName): eventName is Events =>
+          Object.values(Events).includes(eventName as Events)
       );
 
       // Get all events by their names

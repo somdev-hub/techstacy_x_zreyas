@@ -95,7 +95,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             setError(null);
             return;
           } catch (refreshError) {
-            if (pathname !== "/") {
+            if (pathname !== "/" && pathname !== "/sentry-example-page") {
               router.replace("/");
               toast.error("Session expired. Please log in again.");
             }
@@ -139,7 +139,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
         .catch((error) => {
           console.error("Auto refresh failed:", error);
           // Only redirect if not already on home page
-          if (pathname !== "/" && error.message?.includes("Token refresh failed")) {
+          if (
+            pathname !== "/" &&
+            error.message?.includes("Token refresh failed")
+          ) {
             router.replace("/");
             toast.error("Session expired. Please log in again.");
           }
@@ -148,16 +151,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     // Additional check on focus/visibility change
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === "visible") {
         fetchUser().catch(console.error);
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       clearInterval(refreshInterval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [fetchUser, pathname, router]);
 

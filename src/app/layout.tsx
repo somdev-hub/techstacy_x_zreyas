@@ -8,6 +8,7 @@ import { LoginModal } from "@/components/LoginModal";
 import { Toaster } from "@/components/ui/sonner";
 import { UserProvider } from "@/context/UserContext";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { Analytics } from "@vercel/analytics/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -57,6 +58,7 @@ export default function RootLayout({
           </NotificationProvider>
         </UserProvider>
         <Toaster />
+        <Analytics />
       </body>
     </html>
   );

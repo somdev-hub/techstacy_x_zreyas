@@ -1,6 +1,6 @@
 import { PrismaClient, NotificationType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
+import { cookies } from "next/headers";
 import { verifyAccessToken } from "@/lib/jose-auth";
 import { NotificationService } from "@/lib/notification-service";
 import { prisma } from "@/lib/prisma";
@@ -8,18 +8,16 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: NextRequest) {
   try {
     // Get token from cookies
-    const headersList = await headers();
-    const cookie = headersList.get("cookie") || "";
-    const accessToken = cookie
-      .split(";")
-      .find((c) => c.trim().startsWith("accessToken="));
 
-    if (!accessToken) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const cookieStore = await cookies();
+    const token = cookieStore.get("accessToken")?.value;
+
+    if (!token) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     // Verify token
-    const token = accessToken.split("=")[1];
+    // const token = accessToken.split("=")[1];
     const decoded = await verifyAccessToken(token);
 
     if (!decoded.userId || !decoded.email) {

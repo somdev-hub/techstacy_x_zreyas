@@ -10,9 +10,12 @@ export async function POST(req: NextRequest) {
     const data = await req.json();
     const { notificationId, accept } = data;
 
-    if (typeof notificationId !== 'number' || typeof accept !== 'boolean') {
+    if (typeof notificationId !== "number" || typeof accept !== "boolean") {
       return NextResponse.json(
-        { error: "Invalid parameters. notificationId must be a number and accept must be a boolean" },
+        {
+          error:
+            "Invalid parameters. notificationId must be a number and accept must be a boolean",
+        },
         { status: 400 }
       );
     }
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
         id: notificationId,
         userId: user.id,
         type: NotificationType.TEAM_INVITE,
-        isRead: false // Only allow responding to unread notifications
+        isRead: false, // Only allow responding to unread notifications
       },
       include: {
         user: true,
@@ -51,7 +54,12 @@ export async function POST(req: NextRequest) {
       eventId: number;
     };
 
-    if (!metadata || !metadata.participantId || !metadata.mainParticipantId || !metadata.eventId) {
+    if (
+      !metadata ||
+      !metadata.participantId ||
+      !metadata.mainParticipantId ||
+      !metadata.eventId
+    ) {
       return NextResponse.json(
         { error: "Invalid notification metadata" },
         { status: 400 }
@@ -63,7 +71,7 @@ export async function POST(req: NextRequest) {
         // Update the event participation status
         await prisma.eventParticipant.update({
           where: {
-            id: metadata.participantId,
+            id: Number(metadata.participantId),
           },
           data: {
             isConfirmed: true,
@@ -73,7 +81,7 @@ export async function POST(req: NextRequest) {
         // Get the team lead's user record
         const teamLead = await prisma.eventParticipant.findUnique({
           where: {
-            id: metadata.mainParticipantId,
+            id: Number(metadata.mainParticipantId),
           },
           include: {
             user: true,
@@ -92,7 +100,7 @@ export async function POST(req: NextRequest) {
               type: "TEAM_INVITE_RESPONSE",
               eventId: metadata.eventId.toString(),
               response: "accepted",
-            }
+            },
           });
         }
       } catch (error) {
@@ -142,7 +150,7 @@ export async function POST(req: NextRequest) {
               type: "TEAM_INVITE_RESPONSE",
               eventId: metadata.eventId.toString(),
               response: "declined",
-            }
+            },
           });
         }
       } catch (error) {

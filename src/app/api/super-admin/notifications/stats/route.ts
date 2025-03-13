@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { userFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getConnectionStats } from "@/lib/sse-utility";
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,11 +26,9 @@ export async function GET(req: NextRequest) {
     const [
       totalNotifications,
       totalUnreadNotifications,
-      activeSSEConnections,
       notificationsToday,
       notificationsByType,
       notificationsOverTime,
-      queueStats,
       topRecipients,
     ] = await Promise.all([
       // Total notifications count
@@ -41,9 +38,6 @@ export async function GET(req: NextRequest) {
       prisma.notification.count({
         where: { isRead: false },
       }),
-
-      // Active SSE connections (live connections)
-      Promise.resolve(getConnectionStats()),
 
       // Notifications sent today
       prisma.notification.count({
@@ -78,73 +72,53 @@ export async function GET(req: NextRequest) {
         ORDER BY date ASC
       `,
 
-      // Queue stats
-      prisma.$transaction([
-        // Total queue items
-        prisma.notificationQueue.count(),
-
-        // Pending items
-        prisma.notificationQueue.count({
-          where: { sent: false },
-        }),
-
-        // Processed items
-        prisma.notificationQueue.count({
-          where: { sent: true },
-        }),
-      ]),
-
       // Top 10 notification recipients
-      prisma.notification
-        .groupBy({
-          by: ["userId"],
+      prisma.notification.groupBy({
+        by: ["userId"],
+        _count: {
+          id: true,
+        },
+        orderBy: {
           _count: {
+            id: "desc",
+          },
+        },
+        take: 10,
+      }).then(async (results) => {
+        // Get user info for each top recipient
+        if (results.length === 0) return [];
+
+        const userIds = results.map((r) => r.userId);
+        const users = await prisma.user.findMany({
+          where: {
+            id: {
+              in: userIds,
+            },
+          },
+          select: {
             id: true,
+            name: true,
+            email: true,
           },
-          orderBy: {
-            _count: {
-              id: "desc",
-            },
-          },
-          take: 10,
-        })
-        .then(async (results) => {
-          // Get user info for each top recipient
-          if (results.length === 0) return [];
+        });
 
-          const userIds = results.map((r) => r.userId);
-          const users = await prisma.user.findMany({
-            where: {
-              id: {
-                in: userIds,
-              },
-            },
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          });
-
-          // Merge user info with count data
-          return results.map((result) => {
-            const user = users.find((u) => u.id === result.userId);
-            return {
-              userId: result.userId,
-              count: result._count.id,
-              user,
-            };
-          });
-        }),
+        // Merge user info with count data
+        return results.map((result) => {
+          const user = users.find((u) => u.id === result.userId);
+          return {
+            userId: result.userId,
+            count: result._count.id,
+            user,
+          };
+        });
+      }),
     ]);
 
     return NextResponse.json({
       overview: {
         totalNotifications: Number(totalNotifications),
         totalUnreadNotifications: Number(totalUnreadNotifications),
-        notificationsToday: Number(notificationsToday),
-        activeConnections: activeSSEConnections.totalConnections,
-        activeUsers: activeSSEConnections.totalUsers,
+        notificationsToday: Number(notificationsToday)
       },
       notificationsByType: notificationsByType.map((item) => ({
         type: item.type,
@@ -156,11 +130,6 @@ export async function GET(req: NextRequest) {
             count: Number(item.count),
           }))
         : [],
-      queue: {
-        total: Number(queueStats[0]),
-        pending: Number(queueStats[1]),
-        processed: Number(queueStats[2]),
-      },
       topRecipients: topRecipients.map((recipient) => ({
         ...recipient,
         count: Number(recipient.count),

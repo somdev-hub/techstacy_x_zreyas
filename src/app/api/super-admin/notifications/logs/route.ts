@@ -76,64 +76,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Get queue items if requested
-    interface User {
-      id: number;
-      name: string;
-      email: string;
-    }
-
-    interface NotificationQueueItem {
-      id: number;
-      userId: number;
-      sent: boolean;
-      createdAt: Date;
-      user: User;
-    }
-
-    let queueItems: NotificationQueueItem[] = [];
-    if (url.searchParams.get("includeQueue") === "true") {
-      const queueWhere: any = {};
-
-      if (userId) {
-        queueWhere.userId = userId;
-      }
-
-      if (status === "sent") {
-        queueWhere.sent = true;
-      } else if (status === "pending") {
-        queueWhere.sent = false;
-      }
-
-      if (startDate || endDate) {
-        queueWhere.createdAt = {};
-        if (startDate) {
-          queueWhere.createdAt.gte = startDate;
-        }
-        if (endDate) {
-          queueWhere.createdAt.lte = endDate;
-        }
-      }
-
-      queueItems = await prisma.notificationQueue.findMany({
-        where: queueWhere,
-        orderBy: { createdAt: "desc" },
-        take: pageSize,
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      });
-    }
-
     return NextResponse.json({
       notifications,
-      queueItems,
       pagination: {
         page,
         pageSize,

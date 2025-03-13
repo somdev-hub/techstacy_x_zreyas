@@ -150,6 +150,7 @@ export function EventCard({
           credentials: "include",
           body: JSON.stringify({
             eventId: Number(active.event.id),
+            userId: Number(currentUser?.id),
             otherParticipants: [],
           }),
         });
@@ -596,20 +597,20 @@ export function EventCard({
               </motion.div>
 
               <div>
-                <div className="flex justify-between items-start p-4 gap-8">
+                <div className="flex justify-between items-center p-4 gap-8">
                   <div className="flex-1">
                     <motion.h3
                       layoutId={`title-${active.title}-${id}`}
-                      className="font-bold text-neutral-200 mb-2"
+                      className="font-bold text-neutral-200 text-xl"
                     >
                       {active.title}
                     </motion.h3>
-                    <motion.p
+                    {/* <motion.p
                       layoutId={`description-${active.description}-${id}`}
                       className="text-neutral-400"
                     >
                       {active.description}
-                    </motion.p>
+                    </motion.p> */}
                   </div>
 
                   {!showForm && !registeredEvents.includes(active.event.id) && (
@@ -692,7 +693,7 @@ export function EventCard({
                   layoutId={`description-${card.description}-${id}`}
                   className="text-neutral-400 text-center md:text-left"
                 >
-                  {card.description}
+                  {card?.description.substring(0, 80)}...
                 </motion.p>
               </div>
             </div>

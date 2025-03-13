@@ -173,7 +173,7 @@ export function QRCard({ cardData }: QRCardProps) {
         <p className="mb-2">
           <strong>Prize Pool:</strong> ₹{activeCard.prizePool}
         </p>
-        <p className="mt-4 mb-4">{activeCard.description}</p>
+        {/* <p className="mt-4 mb-4">{activeCard.description}</p> */}
         {renderTeamMembers(activeCard.event.teammates)}
         <div className="mt-4">
           {/* Only show cancel team participation button if user is team leader */}
@@ -323,7 +323,7 @@ export function QRCard({ cardData }: QRCardProps) {
                   layoutId={`description-${card.description}-${id}-${index}`}
                   className="text-neutral-400 text-center md:text-left"
                 >
-                  {card.description}
+                  {card.description.substring(0,150)}
                 </motion.p>
                 {card.event.teammates && card.event.teammates.length > 0 && (
                   <div className="mt-2 flex items-center gap-2">

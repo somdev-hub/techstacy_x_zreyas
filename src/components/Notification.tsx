@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNotifications } from "@/context/NotificationContext";
 import { toast } from "sonner";
 
@@ -7,17 +7,9 @@ interface NotificationProps {
 }
 
 const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
-  const { notifications, markAsRead, clearNotifications } = useNotifications();
+  const { notifications, markAsRead, clearNotifications, refetchNotifications } = useNotifications();
   const [loadingStates, setLoadingStates] = useState<Record<number, { accept: boolean; reject: boolean }>>({});
-  const [hasMore, setHasMore] = useState(false);
-
-  useEffect(() => {
-    if (notifications.length > 0) {
-      setHasMore(true);
-    } else {
-      setHasMore(false);
-    }
-  }, [notifications, setHasMore]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleTeamInvite = async (notificationId: number, accept: boolean) => {
     // Set loading state
@@ -41,7 +33,7 @@ const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
         }),
         credentials: "include",
       });
-
+      
       const data = await response.json();
       
       if (!response.ok) {
@@ -80,6 +72,18 @@ const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      await refetchNotifications();
+      toast.success("Notifications refreshed");
+    } catch (error) {
+      toast.error("Failed to refresh notifications");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + " " + date.toLocaleTimeString();
@@ -92,6 +96,25 @@ const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
           <h2 className="text-xl font-semibold">Notifications</h2>
           <div className="flex items-center gap-2">
             <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="text-sm px-3 py-1 bg-neutral-700 hover:bg-neutral-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              {isRefreshing ? (
+                <>
+                  <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-b-transparent border-white"></span>
+                  <span>Refreshing...</span>
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Refresh</span>
+                </>
+              )}
+            </button>
+            <button
               onClick={handleClearNotifications}
               className="text-sm px-3 py-1 bg-neutral-700 hover:bg-neutral-600 rounded-md"
             >
@@ -102,7 +125,7 @@ const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
               className="text-neutral-400 hover:text-white"
             >
               <svg
-                xmlns="http://www.w3.org/2000/svg"
+                xmlns="http://www.w3.org/200/svg"
                 className="h-6 w-6"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -122,7 +145,7 @@ const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
         {notifications.length === 0 ? (
           <p className="text-center text-neutral-400 py-4">No notifications</p>
         ) : (
-          <div className="space-y-4 ">
+          <div className="space-y-4">
             {notifications.map((notification) => (
               <div
                 key={notification.id}

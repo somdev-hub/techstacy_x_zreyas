@@ -69,7 +69,8 @@ const Home = () => {
       onClick: handleTshirtOrder,
       razorpay: true,
       paymentButtonId:
-        process.env.NEXT_PUBLIC_RAZORPAY_TSHIRT_BUTTON_ID || "pl_PjDCUxfpQR0y5x",
+        process.env.NEXT_PUBLIC_RAZORPAY_TSHIRT_BUTTON_ID ||
+        "pl_PjDCUxfpQR0y5x",
     },
   };
 
@@ -153,7 +154,7 @@ const Home = () => {
   const roboRaceCard = roboRaceEvent
     ? {
         title: roboRaceEvent.name,
-        description: roboRaceEvent.description,
+        description: roboRaceEvent.description.substring(0, 100) + "...",
         src: roboRaceEvent.imageUrl,
         event: roboRaceEvent,
       }

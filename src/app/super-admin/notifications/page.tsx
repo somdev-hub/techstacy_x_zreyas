@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, JSX } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -51,7 +51,7 @@ ChartJS.register(
 
 const chartOptions = {
   responsive: true,
-  maintainAspectRatio: false, // Add this line
+  maintainAspectRatio: false,
   color: "white",
   scales: {
     x: {
@@ -86,8 +86,6 @@ interface NotificationStats {
     totalNotifications: number;
     totalUnreadNotifications: number;
     notificationsToday: number;
-    activeConnections: number;
-    activeUsers: number;
   };
   notificationsByType: Array<{
     type: string;
@@ -97,11 +95,6 @@ interface NotificationStats {
     date: string;
     count: number;
   }>;
-  queue: {
-    total: number;
-    pending: number;
-    processed: number;
-  };
   topRecipients: Array<{
     userId: number;
     count: number;
@@ -121,10 +114,10 @@ interface BulkMessage {
   eventName?: Events | undefined;
 }
 
-export default function NotificationsManagement(): JSX.Element {
+export default function NotificationsManagement() {
   const [stats, setStats] = useState<NotificationStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [timeframe] = useState("30"); // Remove unused setter
+  const [timeframe] = useState("30");
   const [bulkMessage, setBulkMessage] = useState<BulkMessage>({
     title: "",
     message: "",
@@ -181,7 +174,6 @@ export default function NotificationsManagement(): JSX.Element {
 
       if (user.role !== "SUPERADMIN") {
         console.log(user.role);
-
         router.push("/super-admin/home");
         return;
       }
@@ -261,33 +253,8 @@ export default function NotificationsManagement(): JSX.Element {
       toast.success(`Purged ${data.deletedCount} old notifications`);
       fetchStats();
     } catch (err) {
-      // Rename error to err since we're using it
       console.error("Failed to purge notifications:", err);
       toast.error("Failed to purge old notifications");
-    }
-  };
-
-  const handleRetryFailed = async () => {
-    try {
-      const response = await fetch("/api/super-admin/notifications/manage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          action: "retryFailed",
-          maxAge: 7,
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-
-      toast.success(data.message);
-      fetchStats();
-    } catch (err) {
-      // Rename error to err since we're using it
-      console.error("Failed to retry notifications:", err);
-      toast.error("Failed to retry failed notifications");
     }
   };
 
@@ -316,7 +283,7 @@ export default function NotificationsManagement(): JSX.Element {
 
         <TabsContent value="overview" className="space-y-4">
           {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="p-4 bg-neutral-800/50 rounded-lg shadow-lg border border-neutral-700 backdrop-blur-sm hover:bg-neutral-800/70 transition-all">
               <h3 className="text-lg font-semibold mb-2">
                 Total Notifications
@@ -334,14 +301,12 @@ export default function NotificationsManagement(): JSX.Element {
               </p>
             </div>
             <div className="p-4 bg-neutral-800/50 rounded-lg shadow-lg border border-neutral-700 backdrop-blur-sm hover:bg-neutral-800/70 transition-all">
-              <h3 className="text-lg font-semibold mb-2">Active Connections</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                Today&apos;s Notifications
+              </h3>
               <p className="text-2xl">
-                {stats?.overview.activeConnections || 0}
+                {stats?.overview.notificationsToday || 0}
               </p>
-            </div>
-            <div className="p-4 bg-neutral-800/50 rounded-lg shadow-lg border border-neutral-700 backdrop-blur-sm hover:bg-neutral-800/70 transition-all">
-              <h3 className="text-lg font-semibold mb-2">Queue Status</h3>
-              <p className="text-2xl">{stats?.queue.pending || 0} pending</p>
             </div>
           </div>
 
@@ -352,8 +317,6 @@ export default function NotificationsManagement(): JSX.Element {
                 Notifications Over Time
               </h3>
               <div className="h-[300px]">
-                {" "}
-                {/* Add this wrapper div */}
                 {stats?.notificationsOverTime && (
                   <Line
                     data={{
@@ -382,13 +345,11 @@ export default function NotificationsManagement(): JSX.Element {
                 Notifications by Type
               </h3>
               <div className="h-[300px]">
-                {" "}
-                {/* Add this wrapper div */}
                 {stats?.notificationsByType && (
                   <Doughnut
                     data={{
-                      labels: stats.notificationsByType.map(
-                        (item) => item.type
+                      labels: stats.notificationsByType.map((item) =>
+                        item.type.replace(/_/g, " ")
                       ),
                       datasets: [
                         {
@@ -487,6 +448,7 @@ export default function NotificationsManagement(): JSX.Element {
                     value={bulkMessage.userType}
                     onValueChange={(value: string) =>
                       setBulkMessage((prev) => ({
+
                         ...prev,
                         userType: value,
                         // Reset event selection when changing user type
@@ -628,12 +590,6 @@ export default function NotificationsManagement(): JSX.Element {
                 onClick={handlePurgeOld}
               >
                 Purge Old Notifications
-              </button>
-              <button
-                className="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-md"
-                onClick={handleRetryFailed}
-              >
-                Retry Failed Notifications
               </button>
             </div>
           </div>

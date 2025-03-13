@@ -83,3 +83,30 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("accessToken")?.value;
+    
+    if (!token) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const decoded = await verifyAccessToken(token);
+    if (!decoded.userId || !decoded.email || !decoded.role || decoded.role !== 'ADMIN') {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+    }
+
+    // Delete any existing winner clue
+    await prisma.winnerClue.deleteMany();
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting winner clue:", error);
+    return NextResponse.json(
+      { error: "Failed to delete winner clue" },
+      { status: 500 }
+    );
+  }
+}

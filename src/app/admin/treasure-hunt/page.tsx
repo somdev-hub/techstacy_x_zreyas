@@ -57,34 +57,50 @@ const TreasureHuntAdmin = () => {
     thirdClue: "",
     finalClue: "",
   });
+  const [isCreatingCluePair, setIsCreatingCluePair] = useState(false);
+  const [isUpdatingCluePair, setIsUpdatingCluePair] = useState(false);
+  const [isCreatingWinnerClue, setIsCreatingWinnerClue] = useState(false);
+  const [isLoadingTeams, setIsLoadingTeams] = useState(false);
+  const [isLoadingCluePairs, setIsLoadingCluePairs] = useState(false);
+  const [isLoadingWinnerClue, setIsLoadingWinnerClue] = useState(false);
+  const [isLoadingHuntStatus, setIsLoadingHuntStatus] = useState(false);
+  const [isDownloadingWinnerQR, setIsDownloadingWinnerQR] = useState(false);
   const [isGeneratingQRMap, setIsGeneratingQRMap] = useState<{[key: number]: boolean}>({});
   const [huntStatus, setHuntStatus] = useState<'running' | 'stopped'>('stopped');
+  const [isDeletingCluePair, setIsDeletingCluePair] = useState<{[key: number]: boolean}>({});
+  const [isDeletingWinnerClue, setIsDeletingWinnerClue] = useState(false);
 
-  // ... existing fetch and CRUD functions ...
   const fetchTeams = async () => {
     try {
+      setIsLoadingTeams(true);
       const response = await fetch("/api/events/treasure-hunt/teams");
       if (!response.ok) throw new Error("Failed to fetch teams");
       const data = await response.json();
       setTeams(data);
     } catch (error) {
       toast.error("Failed to fetch teams");
+    } finally {
+      setIsLoadingTeams(false);
     }
   };
 
   const fetchCluePairs = async () => {
     try {
+      setIsLoadingCluePairs(true);
       const response = await fetch("/api/events/treasure-hunt/clues");
       if (!response.ok) throw new Error("Failed to fetch clue pairs");
       const data = await response.json();
       setCluePairs(data);
     } catch (error) {
       toast.error("Failed to fetch clue pairs");
+    } finally {
+      setIsLoadingCluePairs(false);
     }
   };
 
   const createCluePair = async () => {
     try {
+      setIsCreatingCluePair(true);
       const response = await fetch("/api/events/treasure-hunt/clues", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -104,6 +120,8 @@ const TreasureHuntAdmin = () => {
       fetchCluePairs();
     } catch (error) {
       toast.error("Failed to create clue pair");
+    } finally {
+      setIsCreatingCluePair(false);
     }
   };
 
@@ -178,6 +196,7 @@ const TreasureHuntAdmin = () => {
 
   const updateCluePair = async (id: number) => {
     try {
+      setIsUpdatingCluePair(true);
       const response = await fetch(`/api/events/treasure-hunt/clues/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -192,6 +211,8 @@ const TreasureHuntAdmin = () => {
       fetchCluePairs();
     } catch (error) {
       toast.error("Failed to update clue pair");
+    } finally {
+      setIsUpdatingCluePair(false);
     }
   };
 
@@ -205,9 +226,9 @@ const TreasureHuntAdmin = () => {
     });
   };
 
-  // Add fetchWinnerClue function
   const fetchWinnerClue = async () => {
     try {
+      setIsLoadingWinnerClue(true);
       const response = await fetch("/api/events/treasure-hunt/winner-clue");
       if (!response.ok) throw new Error("Failed to fetch winner clue");
       const data = await response.json();
@@ -215,12 +236,14 @@ const TreasureHuntAdmin = () => {
     } catch (error) {
       console.error('Error fetching winner clue:', error);
       toast.error("Failed to fetch winner clue");
+    } finally {
+      setIsLoadingWinnerClue(false);
     }
   };
 
-  // Add createWinnerClue function
   const createWinnerClue = async (clue: string) => {
     try {
+      setIsCreatingWinnerClue(true);
       const response = await fetch("/api/events/treasure-hunt/winner-clue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -231,26 +254,71 @@ const TreasureHuntAdmin = () => {
 
       toast.success("Winner clue created successfully");
       fetchWinnerClue();
+      setNewClues(prev => ({ ...prev, firstClue: "" }));
     } catch (error) {
       toast.error("Failed to create winner clue");
+    } finally {
+      setIsCreatingWinnerClue(false);
     }
   };
 
-  // Add fetchHuntStatus
+  const deleteCluePair = async (id: number) => {
+    try {
+      setIsDeletingCluePair(prev => ({ ...prev, [id]: true }));
+      const response = await fetch(`/api/events/treasure-hunt/clues/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete clue pair");
+      }
+
+      toast.success("Clue pair deleted successfully");
+      fetchCluePairs();
+    } catch (error) {
+      toast.error("Failed to delete clue pair");
+    } finally {
+      setIsDeletingCluePair(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const deleteWinnerClue = async () => {
+    try {
+      setIsDeletingWinnerClue(true);
+      const response = await fetch("/api/events/treasure-hunt/winner-clue", {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete winner clue");
+      }
+
+      toast.success("Winner clue deleted successfully");
+      setWinnerClue(null);
+    } catch (error) {
+      toast.error("Failed to delete winner clue");
+    } finally {
+      setIsDeletingWinnerClue(false);
+    }
+  };
+
   const fetchHuntStatus = async () => {
     try {
+      setIsLoadingHuntStatus(true);
       const response = await fetch("/api/events/treasure-hunt/status");
       if (!response.ok) throw new Error("Failed to fetch hunt status");
       const data = await response.json();
       setHuntStatus(data.status);
     } catch (error) {
       console.error('Error fetching hunt status:', error);
+    } finally {
+      setIsLoadingHuntStatus(false);
     }
   };
 
-  // Add downloadWinnerQR function
   const downloadWinnerQR = async () => {
     try {
+      setIsDownloadingWinnerQR(true);
       const response = await fetch('/api/events/treasure-hunt/winner-clue/qr');
       
       if (!response.ok) {
@@ -268,18 +336,21 @@ const TreasureHuntAdmin = () => {
     } catch (_error) {
       toast.error("Failed to download QR code");
       console.error(_error);
+    } finally {
+      setIsDownloadingWinnerQR(false);
     }
   };
 
-  // QRCodeDisplay component with responsive adjustments
   const QRCodeDisplay = ({ qrCode, label }: { qrCode: string; label: string }) => {
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
-
+    
     useEffect(() => {
-      if (canvasRef.current) {
+      if (canvasRef.current && qrCode) {
         QRCode.toCanvas(canvasRef.current, qrCode, {
-          width: 120,  // Slightly smaller for better mobile display
+          width: 120,
           margin: 2,
+        }).catch(error => {
+          console.error("Error generating QR code:", error);
         });
       }
     }, [qrCode]);
@@ -295,7 +366,6 @@ const TreasureHuntAdmin = () => {
     );
   };
 
-  // Make TeamDetailsModal more responsive
   const TeamDetailsModal = ({ team }: { team: Team }) => {
     if (!team) return null;
 
@@ -353,11 +423,6 @@ const TreasureHuntAdmin = () => {
     fetchHuntStatus();
   }, []);
 
-  // Simplify the QR code useEffect - we don't need complex DOM manipulation
-  useEffect(() => {
-    // No need for additional effects - QRCodeDisplay component handles rendering
-  }, [selectedPairId, cluePairs]);
-
   return (
     <div className="p-3 sm:p-6">
       <div className="mb-6">
@@ -366,6 +431,15 @@ const TreasureHuntAdmin = () => {
           Manage teams, clues, and track progress for the treasure hunt.
         </p>
       </div>
+
+      {(isLoadingTeams || isLoadingCluePairs || isLoadingWinnerClue || isLoadingHuntStatus) && (
+        <div className="flex justify-center items-center p-6 bg-neutral-800 rounded-xl mb-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span>Loading data...</span>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:gap-6">
         {/* Hunt Controls Section */}
@@ -387,7 +461,12 @@ const TreasureHuntAdmin = () => {
                     : "bg-green-600 hover:bg-green-700"
                 }`}
               >
-                {isStarting ? "Starting..." : "Start Hunt"}
+                {isStarting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    Starting...
+                  </span>
+                ) : "Start Hunt"}
               </button>
               <button
                 onClick={stopHunt}
@@ -398,7 +477,12 @@ const TreasureHuntAdmin = () => {
                     : "bg-red-600 hover:bg-red-700"
                 }`}
               >
-                {isStopping ? "Stopping..." : "Stop Hunt"}
+                {isStopping ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    Stopping...
+                  </span>
+                ) : "Stop Hunt"}
               </button>
             </div>
           </div>
@@ -462,9 +546,19 @@ const TreasureHuntAdmin = () => {
                 </div>
                 <button
                   onClick={createCluePair}
-                  className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md transition-colors"
+                  disabled={isCreatingCluePair}
+                  className={`w-full px-4 py-2 rounded-md transition-colors ${
+                    isCreatingCluePair 
+                      ? "bg-neutral-600 cursor-not-allowed" 
+                      : "bg-green-600 hover:bg-green-700"
+                  }`}
                 >
-                  Create Clues
+                  {isCreatingCluePair ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      Creating...
+                    </span>
+                  ) : "Create Clues"}
                 </button>
               </div>
             </div>
@@ -497,7 +591,32 @@ const TreasureHuntAdmin = () => {
                           : "bg-green-600 hover:bg-green-700"
                       }`}
                     >
-                      {isGeneratingQRMap[pair.id] ? "Downloading..." : "Download"}
+                      {isGeneratingQRMap[pair.id] ? (
+                        <span className="flex items-center gap-2">
+                          <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          Downloading...
+                        </span>
+                      ) : (
+                        "Download"
+                      )}
+                    </button>
+                    <button
+                      onClick={() => deleteCluePair(pair.id)}
+                      disabled={isDeletingCluePair[pair.id]}
+                      className={`flex-1 sm:flex-none px-3 py-2 rounded-md transition-colors text-sm ${
+                        isDeletingCluePair[pair.id]
+                          ? "bg-neutral-600 cursor-not-allowed"
+                          : "bg-red-600 hover:bg-red-700"
+                      }`}
+                    >
+                      {isDeletingCluePair[pair.id] ? (
+                        <span className="flex items-center gap-2">
+                          <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          Deleting...
+                        </span>
+                      ) : (
+                        "Delete"
+                      )}
                     </button>
                   </div>
                 </div>
@@ -544,13 +663,24 @@ const TreasureHuntAdmin = () => {
                       <div className="flex flex-col sm:flex-row gap-2">
                         <button
                           onClick={() => updateCluePair(pair.id)}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md transition-colors"
+                          disabled={isUpdatingCluePair}
+                          className={`px-4 py-2 rounded-md transition-colors ${
+                            isUpdatingCluePair 
+                              ? "bg-neutral-600 cursor-not-allowed" 
+                              : "bg-green-600 hover:bg-green-700"
+                          }`}
                         >
-                          Save Changes
+                          {isUpdatingCluePair ? (
+                            <span className="flex items-center justify-center gap-2">
+                              <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                              Saving...
+                            </span>
+                          ) : "Save Changes"}
                         </button>
                         <button
                           onClick={() => setEditingPairId(null)}
                           className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+                          disabled={isUpdatingCluePair}
                         >
                           Cancel
                         </button>
@@ -601,52 +731,91 @@ const TreasureHuntAdmin = () => {
 
         {/* Winner Clue Section */}
         <div className="bg-neutral-800 rounded-xl p-4 sm:p-6 mt-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
+            <div className="w-full sm:w-auto">
               <h2 className="text-lg sm:text-xl font-bold">Winner Clue</h2>
               <p className="text-xs sm:text-sm text-neutral-400 mt-1">
                 Create or manage the final common clue that teams need to find to win the hunt
               </p>
             </div>
+            {winnerClue && (
+              <button
+                onClick={deleteWinnerClue}
+                disabled={isDeletingWinnerClue}
+                className={`w-full sm:w-auto px-3 py-2 rounded-md transition-colors text-sm ${
+                  isDeletingWinnerClue
+                    ? "bg-neutral-600 cursor-not-allowed"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                {isDeletingWinnerClue ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    Deleting...
+                  </span>
+                ) : "Delete Winner Clue"}
+              </button>
+            )}
           </div>
 
           {winnerClue ? (
-            <div className="bg-neutral-700 rounded-lg p-4">
+            <div className="bg-neutral-700 rounded-lg p-3 sm:p-4">
               <div className="mb-4">
                 <p className="text-sm text-neutral-400">Current Winner Clue</p>
-                <p className="text-base mt-1">{winnerClue.clue}</p>
-                <p className="text-xs text-neutral-500 mt-2 break-all">{winnerClue.qrCode}</p>
+                <p className="text-sm sm:text-base mt-1 break-words">{winnerClue.clue}</p>
+                <p className="text-xs text-neutral-500 mt-2 break-all overflow-hidden">{winnerClue.qrCode}</p>
               </div>
-              
-              <div className="mt-4">
-                <QRCodeDisplay qrCode={winnerClue.qrCode} label="Winner QR Code" />
+              <div className="mt-4 flex flex-col items-center sm:items-start">
+                <div className="w-full max-w-[200px] sm:max-w-[250px]">
+                  <QRCodeDisplay qrCode={winnerClue.qrCode} label="Winner QR Code" />
+                </div>
               </div>
 
               <button
                 onClick={downloadWinnerQR}
-                className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-sm transition-colors"
+                disabled={isDownloadingWinnerQR}
+                className={`mt-4 w-full sm:w-auto px-4 py-2 rounded-md text-sm transition-colors ${
+                  isDownloadingWinnerQR 
+                    ? "bg-neutral-600 cursor-not-allowed" 
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
               >
-                Download QR Code
+                {isDownloadingWinnerQR ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    Downloading...
+                  </span>
+                ) : "Download QR Code"}
               </button>
             </div>
           ) : (
-            <div className="bg-neutral-700 rounded-lg p-4">
-              <div className="space-y-4">
+            <div className="bg-neutral-700 rounded-lg p-3 sm:p-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-sm mb-2">Winner Clue Text</label>
+                  <label className="block text-sm mb-1 sm:mb-2">Winner Clue Text</label>
                   <input
                     type="text"
                     value={newClues.firstClue}
                     onChange={(e) => setNewClues(prev => ({ ...prev, firstClue: e.target.value }))}
-                    className="w-full px-3 py-2 bg-neutral-800 rounded-md"
+                    className="w-full px-3 py-2 bg-neutral-800 rounded-md text-sm sm:text-base"
                     placeholder="Enter the winner clue text"
                   />
                 </div>
                 <button
                   onClick={() => createWinnerClue(newClues.firstClue)}
-                  className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md transition-colors"
+                  disabled={isCreatingWinnerClue || !newClues.firstClue.trim()}
+                  className={`w-full sm:w-auto px-4 py-2 rounded-md transition-colors text-sm sm:text-base ${
+                    isCreatingWinnerClue || !newClues.firstClue.trim()
+                      ? "bg-neutral-600 cursor-not-allowed" 
+                      : "bg-green-600 hover:bg-green-700"
+                  }`}
                 >
-                  Create Winner Clue
+                  {isCreatingWinnerClue ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      Creating...
+                    </span>
+                  ) : "Create Winner Clue"}
                 </button>
               </div>
             </div>
@@ -656,66 +825,77 @@ const TreasureHuntAdmin = () => {
         {/* Teams Progress Section */}
         <div className="bg-neutral-800 rounded-xl p-4 sm:p-6">
           <h2 className="text-lg sm:text-xl font-bold mb-4">Teams Progress</h2>
-          <div className="space-y-4">
-            {teams.map((team) => (
-              <div
-                key={team.eventParticipationId}
-                className="bg-neutral-700 rounded-lg p-4"
-              >
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold">{team.teamName}</h3>
-                      {!team.isAttended && (
-                        <span className="text-xs px-2 py-1 bg-yellow-600/30 text-yellow-200 rounded-full">
-                          Not attended
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs sm:text-sm text-neutral-400 mt-1 break-words">
-                      Team Members: {team.teamMembers.join(", ")}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                    <span className="text-xs sm:text-sm px-2 py-1 bg-blue-900 rounded">
-                      Clue {team.currentClue}/4
-                    </span>
-                    <button
-                      onClick={() => setSelectedTeamId(team.eventParticipationId)}
-                      className="flex-1 sm:flex-none px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded-md text-sm transition-colors"
-                    >
-                      View Details
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Assigned Clues */}
-                {team.assignedClues && (
-                  <div className="mt-2 p-3 bg-neutral-800 rounded-lg">
-                    <p className="text-xs sm:text-sm text-neutral-400 mb-2">Assigned Clues:</p>
-                    <div className="space-y-1 text-xs sm:text-sm">
-                      <p className="break-words">1. {team.assignedClues.firstClue.clue}</p>
-                      <p className="break-words">2. {team.assignedClues.secondClue.clue}</p>
-                      <p className="break-words">3. {team.assignedClues.thirdClue.clue}</p>
-                      <p className="break-words">4. {team.assignedClues.finalClue.clue}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Scanned Clues History */}
-                <div className="mt-3 space-y-2">
-                  {team.scannedClues.map((scan, idx) => (
-                    <div
-                      key={idx}
-                      className="text-xs sm:text-sm text-neutral-400"
-                    >
-                      {new Date(scan.scannedAt).toLocaleString()} - {scan.clue.clue}
-                    </div>
-                  ))}
-                </div>
+          {isLoadingTeams ? (
+            <div className="flex justify-center items-center p-6">
+              <div className="flex items-center space-x-2">
+                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <span>Loading teams...</span>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {teams.length > 0 ? teams.map((team) => (
+                <div
+                  key={team.eventParticipationId}
+                  className="bg-neutral-700 rounded-lg p-4"
+                >
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-semibold">{team.teamName}</h3>
+                        {!team.isAttended && (
+                          <span className="text-xs px-2 py-1 bg-yellow-600/30 text-yellow-200 rounded-full">
+                            Not attended
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs sm:text-sm text-neutral-400 mt-1 break-words">
+                        Team Members: {team.teamMembers.join(", ")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                      <span className="text-xs sm:text-sm px-2 py-1 bg-blue-900 rounded">
+                        Clue {team.currentClue}/4
+                      </span>
+                      <button
+                        onClick={() => setSelectedTeamId(team.eventParticipationId)}
+                        className="flex-1 sm:flex-none px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded-md text-sm transition-colors"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Assigned Clues */}
+                  {team.assignedClues && (
+                    <div className="mt-2 p-3 bg-neutral-800 rounded-lg">
+                      <p className="text-xs sm:text-sm text-neutral-400 mb-2">Assigned Clues:</p>
+                      <div className="space-y-1 text-xs sm:text-sm">
+                        <p className="break-words">1. {team.assignedClues.firstClue.clue}</p>
+                        <p className="break-words">2. {team.assignedClues.secondClue.clue}</p>
+                        <p className="break-words">3. {team.assignedClues.thirdClue.clue}</p>
+                        <p className="break-words">4. {team.assignedClues.finalClue.clue}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Scanned Clues History */}
+                  <div className="mt-3 space-y-2">
+                    {team.scannedClues.map((scan, idx) => (
+                      <div
+                        key={idx}
+                        className="text-xs sm:text-sm text-neutral-400"
+                      >
+                        {new Date(scan.scannedAt).toLocaleString()} - {scan.clue.clue}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )) : (
+                <p className="text-neutral-400 p-4">No teams found.</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

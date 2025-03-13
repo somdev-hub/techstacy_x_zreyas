@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { toast } from "sonner";
 import Link from 'next/link';
@@ -21,6 +21,8 @@ const TreasureHunt = () => {
   const [isAttendanceMarked, setIsAttendanceMarked] = useState(false);
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const scanInProgressRef = useRef(false);
 
   // Fetch team's clue history
   const fetchClueHistory = async () => {
@@ -55,8 +57,27 @@ const TreasureHunt = () => {
     fetchClueHistory();
   }, []);
 
+  const stopScanner = useCallback(() => {
+    if (scannerRef.current) {
+      try {
+        scannerRef.current.clear();
+      } catch (error) {
+        console.error("Error clearing scanner:", error);
+      }
+      scannerRef.current = null;
+    }
+    setIsScanning(false);
+    setScannerInitialized(false);
+  }, []);
+
   const onScanSuccess = useCallback(async (decodedText: string) => {
+    // Prevent multiple simultaneous scan attempts
+    if (scanInProgressRef.current) return;
+    
     try {
+      scanInProgressRef.current = true;
+      console.log("QR code detected:", decodedText);
+      
       // First try scanning as regular clue
       const response = await fetch('/api/events/treasure-hunt/scan', {
         method: 'POST',
@@ -72,7 +93,7 @@ const TreasureHunt = () => {
         toast.success("Clue found!");
         setLatestClue(data.clue);
         fetchClueHistory();
-        setIsScanning(false);
+        stopScanner();
         return;
       }
 
@@ -91,7 +112,7 @@ const TreasureHunt = () => {
         throw new Error(winnerData.error || 'Failed to process QR code');
       }
 
-      setIsScanning(false);
+      stopScanner();
 
       if (winnerData.isWinner) {
         toast.success("🎉 " + winnerData.message, {
@@ -115,34 +136,73 @@ const TreasureHunt = () => {
       fetchClueHistory();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to process QR code');
+    } finally {
+      scanInProgressRef.current = false;
     }
+  }, [stopScanner]);
+
+  const onScanFailure = useCallback((error: Error | string) => {
+    // Ignore frequent scan failures when no QR code is detected
+    // console.debug("QR scan error:", error);
   }, []);
 
-  const onScanFailure = (error: Error | string) => {
-    // Ignore frequent scan failures when no QR code is detected
-    console.debug("QR scan error:", error);
-  };
+  const startScanner = useCallback(() => {
+    if (isScanning) return;
+    setIsScanning(true);
+  }, [isScanning]);
 
   useEffect(() => {
-    let scanner: Html5QrcodeScanner | null = null;
-
     if (isScanning && !scannerInitialized) {
-      scanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        false
-      );
-      scanner.render(onScanSuccess, onScanFailure);
-      setScannerInitialized(true);
-    }
+      // Small timeout to ensure DOM element is ready
+      const timeoutId = setTimeout(() => {
+        try {
+          const qrContainer = document.getElementById("qr-reader");
+          if (!qrContainer) {
+            console.error("QR reader container not found");
+            return;
+          }
 
+          // Clean up any previous instances
+          while (qrContainer.firstChild) {
+            qrContainer.removeChild(qrContainer.firstChild);
+          }
+
+          const scanner = new Html5QrcodeScanner(
+            "qr-reader",
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+              rememberLastUsedCamera: true,
+            },
+            /* verbose= */ false
+          );
+
+          scannerRef.current = scanner;
+          scanner.render(onScanSuccess, onScanFailure);
+          setScannerInitialized(true);
+        } catch (error) {
+          console.error("Failed to initialize QR scanner:", error);
+          toast.error("Failed to initialize camera. Please try again.");
+          setIsScanning(false);
+        }
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isScanning, scannerInitialized, onScanSuccess, onScanFailure]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
     return () => {
-      if (scanner && !isScanning) {
-        scanner.clear();
-        setScannerInitialized(false);
+      if (scannerRef.current) {
+        try {
+          scannerRef.current.clear();
+        } catch (error) {
+          console.error("Error cleaning up scanner:", error);
+        }
       }
     };
-  }, [isScanning, scannerInitialized, onScanSuccess]);
+  }, []);
 
   if (isLoading) {
     return (
@@ -204,7 +264,7 @@ const TreasureHunt = () => {
                 <>
                   <div id="qr-reader" className="w-full h-[300px] bg-neutral-700 rounded-lg overflow-hidden" />
                   <button
-                    onClick={() => setIsScanning(false)}
+                    onClick={stopScanner}
                     className="mt-4 w-full bg-red-600 hover:bg-red-700 rounded-md px-4 py-2 transition-colors"
                   >
                     Stop Scanning
@@ -212,7 +272,7 @@ const TreasureHunt = () => {
                 </>
               ) : (
                 <button
-                  onClick={() => setIsScanning(true)}
+                  onClick={startScanner}
                   className="w-full bg-blue-600 hover:bg-blue-700 rounded-md px-4 py-2 transition-colors"
                 >
                   Start Scanning

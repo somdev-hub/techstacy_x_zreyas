@@ -26,66 +26,66 @@ export default function Home() {
   const products = [
     {
       title: "Moonbeam",
-      thumbnail: "/assets/event/cultural-1.jpg",
+      thumbnail: "/assets/sit-events/cultural-1.jpg",
     },
     {
       title: "Cursor",
-      thumbnail: "/assets/event/tech-1.jpg",
+      thumbnail: "/assets/sit-events/tech-1.jpg",
     },
     {
       title: "Rogue",
-      thumbnail: "/assets/event/cultural-2.jpg",
+      thumbnail: "/assets/sit-events/cultural-2.jpg",
     },
 
     {
       title: "Editorially",
-      thumbnail: "/assets/event/tech-2.jpg",
+      thumbnail: "/assets/sit-events/tech-2.jpg",
     },
     {
       title: "Editrix AI",
-      thumbnail: "/assets/event/cultural-3.jpg",
+      thumbnail: "/assets/sit-events/cultural-3.jpg",
     },
     {
       title: "Pixel Perfect",
-      thumbnail: "/assets/event/tech-3.jpg",
+      thumbnail: "/assets/sit-events/tech-3.jpg",
     },
 
     {
       title: "Algochurn",
-      thumbnail: "/assets/event/cultural-4.jpg",
+      thumbnail: "/assets/sit-events/cultural-4.jpg",
     },
     {
       title: "Aceternity UI",
-      thumbnail: "/assets/event/tech-7.jpg",
+      thumbnail: "/assets/sit-events/tech-7.jpg",
     },
     {
       title: "Tailwind Master Kit",
-      thumbnail: "/assets/event/tech-4.jpg",
+      thumbnail: "/assets/sit-events/tech-4.jpg",
     },
     {
       title: "SmartBridge",
-      thumbnail: "/assets/event/cultural-5.jpg",
+      thumbnail: "/assets/sit-events/cultural-5.jpg",
     },
     {
       title: "Renderwork Studio",
-      thumbnail: "/assets/event/tech-6.jpg",
+      thumbnail: "/assets/sit-events/tech-6.jpg",
     },
 
     {
       title: "Golden Bells Academy",
-      thumbnail: "/assets/event/tech-8.jpg",
+      thumbnail: "/assets/sit-events/tech-8.jpg",
     },
     {
       title: "Creme Digital",
-      thumbnail: "/assets/event/cultural-6.jpg",
+      thumbnail: "/assets/sit-events/cultural-6.jpg",
     },
     {
       title: "Invoker Labs",
-      thumbnail: "/assets/event/cultural-7.jpg",
+      thumbnail: "/assets/sit-events/cultural-7.jpg",
     },
     {
       title: "E Free Invoice",
-      thumbnail: "/assets/event/cultural-8.jpg",
+      thumbnail: "/assets/sit-events/cultural-8.jpg",
     },
   ];
 

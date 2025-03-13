@@ -11,7 +11,7 @@ export function TabCards() {
       content: (
         <div className="w-full overflow-hidden relative h-full rounded-2xl p-10 text-xl md:text-4xl font-bold text-white bg-gradient-to-br from-purple-700 to-violet-900">
           <p>Dancing</p>
-          <DummyContent image="/assets/event/dance.jpg" />
+          <DummyContent image="/assets/sit-events/dance.jpg" />
         </div>
       ),
     },
@@ -20,8 +20,8 @@ export function TabCards() {
       value: "services",
       content: (
         <div className="w-full overflow-hidden relative h-full rounded-2xl p-10 text-xl md:text-4xl font-bold text-white bg-gradient-to-br from-purple-700 to-violet-900">
-          <p>Services tab</p>
-          <DummyContent image="/assets/event/singing.jpg" />
+          <p>Singing</p>
+          <DummyContent image="/assets/sit-events/singing.jpg" />
         </div>
       ),
     },
@@ -30,8 +30,8 @@ export function TabCards() {
       value: "playground",
       content: (
         <div className="w-full overflow-hidden relative h-full rounded-2xl p-10 text-xl md:text-4xl font-bold text-white bg-gradient-to-br from-purple-700 to-violet-900">
-          <p>Playground tab</p>
-          <DummyContent image="/assets/event/skit.jpg" />
+          <p>Skit</p>
+          <DummyContent image="/assets/sit-events/skit.jpg" />
         </div>
       ),
     },
@@ -40,8 +40,8 @@ export function TabCards() {
       value: "content",
       content: (
         <div className="w-full overflow-hidden relative h-full rounded-2xl p-10 text-xl md:text-4xl font-bold text-white bg-gradient-to-br from-purple-700 to-violet-900">
-          <p>Content tab</p>
-          <DummyContent image="/assets/event/anchoring.jpg" />
+          <p>Anchoring</p>
+          <DummyContent image="/assets/sit-events/anchoring.jpg" />
         </div>
       ),
     },
@@ -50,8 +50,8 @@ export function TabCards() {
       value: "random",
       content: (
         <div className="w-full overflow-hidden relative h-full rounded-2xl p-10 text-xl md:text-4xl font-bold text-white bg-gradient-to-br from-purple-700 to-violet-900">
-          <p>Random tab</p>
-          <DummyContent image="/assets/event/ramp walk.jpg" />
+          <p>Ramp walk</p>
+          <DummyContent image="/assets/sit-events/ramp walk.jpg" />
         </div>
       ),
     },

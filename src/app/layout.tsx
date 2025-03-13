@@ -11,28 +11,24 @@ import { NotificationProvider } from "@/context/NotificationContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"]
+  subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"]
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: "Techstacy X Zreyas",
-  description: "The annual tech fest of Silicon Institute of Technology, Sambalpur",
+  description:
+    "The annual tech fest of Silicon Institute of Technology, Sambalpur",
   manifest: "/manifest.json",
   themeColor: "#171717",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
 };
 
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {

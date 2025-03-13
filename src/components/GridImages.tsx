@@ -11,7 +11,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative overflow-hidden"
           >
             <Image
-              src={"/assets/event/cultural-1.jpg"}
+              src={"/assets/sit-events/cultural-1.jpg"}
               style={{ objectFit: "cover" }}
               fill
               className="transition-transform duration-300 hover:scale-110"
@@ -23,7 +23,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative sm:mt-2 overflow-hidden"
           >
             <Image
-              src={"/assets/event/cultural-1.jpg"}
+              src={"/assets/sit-events/cultural-1.jpg"}
               className=" transition-transform duration-300 hover:scale-110"
               style={{ objectFit: "cover" }}
               fill
@@ -45,7 +45,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative sm:mt-2 overflow-hidden"
           >
             <Image
-              src={"/assets/event/cultural-1.jpg"}
+              src={"/assets/sit-events/cultural-1.jpg"}
               style={{ objectFit: "cover" }}
               fill
               className="transition-transform duration-300 hover:scale-110"
@@ -59,7 +59,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative overflow-hidden"
           >
             <Image
-              src={"/assets/event/cultural-1.jpg"}
+              src={"/assets/sit-events/cultural-1.jpg"}
               style={{ objectFit: "cover" }}
               fill
               className="transition-transform duration-300 hover:scale-110"
@@ -89,7 +89,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative sm:mt-2 overflow-hidden"
           >
             <Image
-              src={"/assets/event/cultural-1.jpg"}
+              src={"/assets/sit-events/cultural-1.jpg"}
               style={{ objectFit: "cover" }}
               fill
               className="transition-transform duration-300 hover:scale-110"
@@ -103,7 +103,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative overflow-hidden"
           >
             <Image
-              src={"/assets/event/cultural-1.jpg"}
+              src={"/assets/sit-events/cultural-1.jpg"}
               style={{ objectFit: "cover" }}
               fill
               className="transition-transform duration-300 hover:scale-110"

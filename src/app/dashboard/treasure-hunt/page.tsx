@@ -21,6 +21,7 @@ const TreasureHunt = () => {
   const [isAttendanceMarked, setIsAttendanceMarked] = useState(false);
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasScannedWinnerQr, setHasScannedWinnerQr] = useState(false);
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const scanInProgressRef = useRef(false);
 
@@ -44,6 +45,7 @@ const TreasureHunt = () => {
       setIsHuntStarted(data.isHuntStarted);
       setCurrentClueNumber(data.currentClueNumber);
       setIsAttendanceMarked(data.isAttendanceMarked);
+      setHasScannedWinnerQr(data.hasScannedWinnerQr || false);
     } catch (error) {
       console.error('Error fetching clues:', error);
       setIsRegistered(false);
@@ -173,6 +175,10 @@ const TreasureHunt = () => {
               fps: 10,
               qrbox: { width: 250, height: 250 },
               rememberLastUsedCamera: true,
+              // Force back camera only
+              videoConstraints: {
+                facingMode: { exact: "environment" }
+              }
             },
             /* verbose= */ false
           );
@@ -245,6 +251,12 @@ const TreasureHunt = () => {
             <div className="bg-neutral-700 rounded-lg p-4 mb-4">
               <p className="text-neutral-400">Waiting for the hunt to begin...</p>
             </div>
+          ) : hasScannedWinnerQr ? (
+            <div className="bg-indigo-900/50 border border-indigo-500/50 rounded-lg p-4 mb-4">
+              <p className="text-indigo-200">
+                🎉 You have completed the treasure hunt by finding the winner QR code! Check your clue history for details.
+              </p>
+            </div>
           ) : latestClue ? (
             <div className="bg-neutral-700 rounded-lg p-4 mb-4">
               <p className="text-sm text-neutral-400 mb-2">Clue {currentClueNumber} of 4</p>
@@ -256,8 +268,8 @@ const TreasureHunt = () => {
             </div>
           )}
 
-          {/* Only show scanner if hunt has started */}
-          {isHuntStarted && (
+          {/* Only show scanner if hunt has started and they haven't found winner QR yet */}
+          {isHuntStarted && !hasScannedWinnerQr && (
             <div className="mt-6">
               <h2 className="text-lg font-bold mb-4">Scan Next Clue</h2>
               {isScanning ? (
@@ -291,13 +303,30 @@ const TreasureHunt = () => {
                 <div 
                   key={index} 
                   className={`p-4 rounded-lg ${
-                    history.isLatest ? 'bg-blue-900/50' : 'bg-neutral-700'
+                    history.isLatest && history.clueNumber === 5 
+                      ? 'bg-gradient-to-r from-indigo-900/80 to-purple-900/80 border border-indigo-500/50' 
+                      : history.isLatest 
+                        ? 'bg-blue-900/50' 
+                        : history.clueNumber === 5 
+                          ? 'bg-indigo-800/30 border border-indigo-500/30' 
+                          : 'bg-neutral-700'
                   }`}
                 >
-                  <p className="text-sm text-neutral-400 mb-1">
-                    Clue {history.clueNumber} - {new Date(history.scannedAt).toLocaleString()}
+                  <div className="flex justify-between items-start">
+                    <p className="text-sm text-neutral-300 mb-1">
+                      {history.clueNumber === 5 ? (
+                        <span className="text-indigo-200 font-semibold">Winner QR</span>
+                      ) : (
+                        <span>Clue {history.clueNumber}</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-neutral-400">
+                      {new Date(history.scannedAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <p className={`text-neutral-200 ${history.clueNumber === 5 ? 'text-indigo-200 font-medium' : ''}`}>
+                    {history.clue}
                   </p>
-                  <p className="text-neutral-200">{history.clue}</p>
                 </div>
               ))
             ) : (

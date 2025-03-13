@@ -82,6 +82,7 @@ export async function GET() {
         isHuntStarted: false,
         currentClueNumber: 0,
         isAttendanceMarked,
+        hasScannedWinnerQr: false,
       });
     }
 
@@ -95,6 +96,28 @@ export async function GET() {
     const isHuntStarted = true; // Since clues are assigned
     const currentClueNumber = scannedClues.length + 1;
     const latestClue = scannedClues[0]?.clue || participant.treasureHunt.clues.firstClue.clue;
+    
+    // Check if the team has scanned the winner QR
+    const hasScannedWinnerQr = participant.treasureHunt.hasScannedWinnerQr || false;
+    
+    // If they've scanned the winner QR, add it to the clue history with special marking
+    if (hasScannedWinnerQr) {
+      // Get the winner clue
+      const winnerClue = await prisma.winnerClue.findFirst();
+      if (winnerClue) {
+        scannedClues.unshift({
+          clue: winnerClue.clue + " 🏆",
+          scannedAt: participant.treasureHunt.winnerScanTime!.toISOString(),
+          isLatest: true,
+          clueNumber: 5 // Winner clue is shown as clue #5
+        });
+        
+        // Mark previous latest clue as not latest anymore
+        if (scannedClues.length > 1) {
+          scannedClues[1].isLatest = false;
+        }
+      }
+    }
 
     return NextResponse.json({
       clues: scannedClues,
@@ -102,6 +125,7 @@ export async function GET() {
       isHuntStarted,
       currentClueNumber,
       isAttendanceMarked,
+      hasScannedWinnerQr,
     });
 
   } catch (error) {

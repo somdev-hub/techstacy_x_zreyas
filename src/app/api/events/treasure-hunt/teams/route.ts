@@ -72,31 +72,55 @@ export async function GET() {
       }
     });
 
-    const formattedTeams = teams.map(team => ({
-      eventParticipationId: team.id,
-      teamName: team.user.name,
-      teamMembers: [
-        team.user.name,
-        ...team.otherParticipants.map(member => member.user.name)
-      ],
-      currentClue: team.treasureHunt ? 
-        (team.clueScans.length + 1 <= 4 ? team.clueScans.length + 1 : 4) : 0,
-      scannedClues: team.clueScans.map(scan => ({
+    // Fetch winner clue to add it to the list of scanned clues
+    const winnerClue = await prisma.winnerClue.findFirst();
+
+    const formattedTeams = teams.map(team => {
+      // Create the team's scanned clues array
+      const scannedClues = team.clueScans.map(scan => ({
         clueId: scan.clueObjectId,
         scannedAt: scan.scannedAt.toISOString(),
         clue: {
           clue: scan.clueObject.clue
         }
-      })),
-      assignedClues: team.treasureHunt?.clues ? {
-        id: team.treasureHunt.clues.id,
-        firstClue: { clue: team.treasureHunt.clues.firstClue.clue },
-        secondClue: { clue: team.treasureHunt.clues.secondClue.clue },
-        thirdClue: { clue: team.treasureHunt.clues.thirdClue.clue },
-        finalClue: { clue: team.treasureHunt.clues.finalClue.clue },
-      } : undefined,
-      isAttended: team.isAttended
-    }));
+      }));
+      
+      // If team has scanned the winner QR, add it to the list of scanned clues
+      if (team.treasureHunt?.hasScannedWinnerQr && winnerClue) {
+        scannedClues.unshift({
+          clueId: -1, // Special ID for winner clue
+          scannedAt: team.treasureHunt.winnerScanTime?.toISOString() || new Date().toISOString(),
+          clue: {
+            clue: winnerClue.clue + " 🏆"
+          }
+        });
+      }
+
+      return {
+        eventParticipationId: team.id,
+        teamName: team.user.name,
+        teamMembers: [
+          team.user.name,
+          ...team.otherParticipants.map(member => member.user.name)
+        ],
+        currentClue: team.treasureHunt?.hasScannedWinnerQr 
+          ? 5 // Winner clue is considered clue #5
+          : team.treasureHunt 
+            ? (team.clueScans.length + 1 <= 4 ? team.clueScans.length + 1 : 4) 
+            : 0,
+        scannedClues,
+        assignedClues: team.treasureHunt?.clues ? {
+          id: team.treasureHunt.clues.id,
+          firstClue: { clue: team.treasureHunt.clues.firstClue.clue },
+          secondClue: { clue: team.treasureHunt.clues.secondClue.clue },
+          thirdClue: { clue: team.treasureHunt.clues.thirdClue.clue },
+          finalClue: { clue: team.treasureHunt.clues.finalClue.clue },
+        } : undefined,
+        isAttended: team.isAttended,
+        hasScannedWinnerQr: team.treasureHunt?.hasScannedWinnerQr || false,
+        winnerScanTime: team.treasureHunt?.winnerScanTime || null
+      };
+    });
 
     return NextResponse.json(formattedTeams);
   } catch (error) {

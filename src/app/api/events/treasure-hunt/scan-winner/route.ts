@@ -42,6 +42,14 @@ export async function POST(request: Request) {
         otherParticipants: {
           include: { user: true },
         },
+        clueScans: {
+          orderBy: {
+            scannedAt: 'desc'
+          },
+          include: {
+            clueObject: true
+          }
+        }
       },
     });
 
@@ -58,6 +66,39 @@ export async function POST(request: Request) {
         message: "Your team has already scanned the winner QR code",
         isWinner: false,
       });
+    }
+
+    // Verify that team has scanned all regular clues before allowing the winner QR
+    // Get the assigned clues for this team
+    const assignedClues = await prisma.treasureHunt.findUnique({
+      where: { id: participant.treasureHunt.id },
+      include: { clues: true }
+    });
+
+    if (!assignedClues) {
+      return NextResponse.json({ 
+        error: "Could not find assigned clues for your team" 
+      }, { status: 400 });
+    }
+    
+    // Count scanned clues - should be 3 (first clue is auto-revealed, not scanned)
+    if (participant.clueScans.length < 3) {
+      return NextResponse.json({
+        error: "You need to find all clues before scanning the winner QR",
+        cluesScanned: participant.clueScans.length,
+        requiredClues: 3
+      }, { status: 400 });
+    }
+    
+    // Verify that final clue was scanned (clue 4)
+    const finalClueScanned = participant.clueScans.some(
+      scan => scan.clueObjectId === assignedClues.clues.finalClueId
+    );
+    
+    if (!finalClueScanned) {
+      return NextResponse.json({
+        error: "You need to find the final clue before scanning the winner QR"
+      }, { status: 400 });
     }
 
     // Check if there's already a winner
@@ -129,10 +170,9 @@ export async function POST(request: Request) {
       winTime: existingWinner.winnerScanTime,
     });
   } catch (error) {
-    console.log(error instanceof Error ? error.message : "Unknown error");
-    return NextResponse.json(
-      { error: "Failed to process winner QR code" },
-      { status: 500 }
-    );
+    console.error(error instanceof Error ? error.message : "Unknown error");
+    return NextResponse.json({ 
+      error: "Failed to process winner QR code" 
+    }, { status: 500 });
   }
 }

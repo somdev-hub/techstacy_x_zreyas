@@ -23,7 +23,9 @@ type Team = {
     finalClue: { clue: string };
   };
   teamMembers: string[];
-  isAttended?: boolean; // Add this field
+  isAttended?: boolean;
+  hasScannedWinnerQr?: boolean;
+  winnerScanTime?: string | null;
 };
 
 type CluePair = {
@@ -395,10 +397,15 @@ const TreasureHuntAdmin = () => {
                   team.scannedClues.map((scan, idx) => (
                     <div
                       key={idx}
-                      className="bg-neutral-700 rounded-lg p-3"
+                      className={`rounded-lg p-3 ${scan.clueId === -1 ? 'bg-indigo-900/70 border border-indigo-500/50' : 'bg-neutral-700'}`}
                     >
                       <p className="text-sm font-medium">
-                        Clue {idx + 1}: {scan.clue.clue}
+                        {scan.clueId === -1 ? (
+                          <span className="text-indigo-200">🏆 Winner QR</span>
+                        ) : (
+                          <span>Clue {idx + 1}</span>
+                        )}
+                        : {scan.clue.clue}
                       </p>
                       <p className="text-xs sm:text-sm text-neutral-400">
                         Scanned at: {new Date(scan.scannedAt).toLocaleString()}
@@ -492,6 +499,9 @@ const TreasureHuntAdmin = () => {
         <div className="bg-neutral-800 rounded-xl p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
             <h2 className="text-lg sm:text-xl font-bold">Clue Pairs</h2>
+            {isLoadingCluePairs && (
+              <p className="text-neutral-400 text-sm sm:text-xs italic">Loading clue pairs...</p>
+            )}
             <button
               onClick={() => setIsCreatingClues(!isCreatingClues)}
               className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
@@ -726,6 +736,10 @@ const TreasureHuntAdmin = () => {
                 )}
               </div>
             ))}
+
+          {isLoadingCluePairs && (
+              <p className="text-neutral-400 text-sm sm:text-xs italic">Loading clue pairs...</p>
+            )}
           </div>
         </div>
 
@@ -837,7 +851,11 @@ const TreasureHuntAdmin = () => {
               {teams.length > 0 ? teams.map((team) => (
                 <div
                   key={team.eventParticipationId}
-                  className="bg-neutral-700 rounded-lg p-4"
+                  className={`rounded-lg p-4 ${
+                    team.hasScannedWinnerQr 
+                      ? 'bg-gradient-to-r from-indigo-900/30 to-neutral-700 border border-indigo-500/30' 
+                      : 'bg-neutral-700'
+                  }`}
                 >
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
                     <div>
@@ -848,14 +866,28 @@ const TreasureHuntAdmin = () => {
                             Not attended
                           </span>
                         )}
+                        {team.hasScannedWinnerQr && (
+                          <span className="text-xs px-2 py-1 bg-indigo-600/50 text-indigo-200 rounded-full flex items-center">
+                            <span className="mr-1">🏆</span> Winner!
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs sm:text-sm text-neutral-400 mt-1 break-words">
                         Team Members: {team.teamMembers.join(", ")}
                       </p>
+                      {team.hasScannedWinnerQr && team.winnerScanTime && (
+                        <p className="text-xs text-indigo-300 mt-1">
+                          Completed hunt on: {new Date(team.winnerScanTime).toLocaleString()}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                      <span className="text-xs sm:text-sm px-2 py-1 bg-blue-900 rounded">
-                        Clue {team.currentClue}/4
+                      <span className={`text-xs sm:text-sm px-2 py-1 rounded ${
+                        team.currentClue === 5 
+                          ? 'bg-indigo-900/70 text-indigo-200' 
+                          : 'bg-blue-900'
+                      }`}>
+                        {team.currentClue === 5 ? 'Completed' : `Clue ${team.currentClue}/4`}
                       </span>
                       <button
                         onClick={() => setSelectedTeamId(team.eventParticipationId)}
@@ -881,14 +913,22 @@ const TreasureHuntAdmin = () => {
 
                   {/* Scanned Clues History */}
                   <div className="mt-3 space-y-2">
-                    {team.scannedClues.map((scan, idx) => (
-                      <div
-                        key={idx}
-                        className="text-xs sm:text-sm text-neutral-400"
-                      >
-                        {new Date(scan.scannedAt).toLocaleString()} - {scan.clue.clue}
-                      </div>
-                    ))}
+                    {team.scannedClues.length > 0 ? (
+                      team.scannedClues.map((scan, idx) => (
+                        <div
+                          key={idx}
+                          className={`text-xs sm:text-sm p-2 rounded ${
+                            scan.clueId === -1 
+                              ? 'bg-indigo-900/50 text-indigo-200' 
+                              : 'text-neutral-400'
+                          }`}
+                        >
+                          {scan.clueId === -1 ? '🏆 ' : ''}{new Date(scan.scannedAt).toLocaleString()} - {scan.clue.clue}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs sm:text-sm text-neutral-500">No clues scanned yet</p>
+                    )}
                   </div>
                 </div>
               )) : (

@@ -25,118 +25,112 @@ export async function middleware(request: NextRequest) {
 
     // Handle authentication for protected routes
     if (!isPublicPath) {
-      // If no access token, try refresh token
+      // If no access token, try refresh token first
       if (!accessToken && refreshToken) {
-        try {
-          // Call refresh endpoint
-          const response = await fetch(`${request.nextUrl.origin}/api/auth/refresh`, {
-            method: 'POST',
-            headers: {
-              Cookie: `refreshToken=${refreshToken}`
-            }
+        const refreshResponse = await fetch(`${request.nextUrl.origin}/api/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            Cookie: `refreshToken=${refreshToken}`
+          }
+        });
+
+        if (refreshResponse.ok) {
+          const newResponse = NextResponse.next();
+          refreshResponse.headers.getSetCookie().forEach(cookie => {
+            newResponse.headers.set('Set-Cookie', cookie);
           });
-
-          if (response.ok) {
-            const data = await response.json();
-            // Get the new access token from response headers
-            const newResponse = NextResponse.next();
-            response.headers.getSetCookie().forEach(cookie => {
-              if (cookie.startsWith('accessToken=')) {
-                newResponse.headers.set('Set-Cookie', cookie);
-              }
-            });
-            return newResponse;
-          }
-        } catch (error) {
-          console.error("Token refresh error:", error);
+          return newResponse;
         }
       }
 
-      if (!accessToken) {
-        return NextResponse.redirect(new URL("/", request.url));
-      }
-
-      try {
-        const payload = await verifyAccessToken(accessToken);
-        
-        if (!payload || !payload.role) {
-          throw new Error("Invalid token payload");
-        }
-
-        const currentSection = path.split('/')[1]; 
-
-        const hasAccess = (role: string, section: string) => {
-          switch (section) {
-            case "super-admin":
-              return role === "SUPERADMIN";
-            case "admin":
-              return role === "ADMIN";
-            case "dashboard":
-              return role === "USER";
-            default:
-              return false;
+      // If we have an access token, verify it
+      if (accessToken) {
+        try {
+          const payload = await verifyAccessToken(accessToken);
+          
+          if (!payload || !payload.role) {
+            throw new Error("Invalid token payload");
           }
-        };
 
-        if (!hasAccess(payload.role, currentSection)) {
-          const getHomeRoute = (role: string) => {
-            switch (role) {
-              case "SUPERADMIN":
-                return "/super-admin/home";
-              case "ADMIN":
-                return "/admin/home";
+          const currentSection = path.split('/')[1]; 
+
+          const hasAccess = (role: string, section: string) => {
+            switch (section) {
+              case "super-admin":
+                return role === "SUPERADMIN";
+              case "admin":
+                return role === "ADMIN" || role === "SUPERADMIN";
+              case "dashboard":
+                return ["USER", "ADMIN", "SUPERADMIN"].includes(role);
               default:
-                return "/dashboard/home";
+                return false;
             }
           };
-          
-          return NextResponse.redirect(new URL(getHomeRoute(payload.role), request.url));
-        }
 
-      } catch (error) {
-        // On token verification error, try refresh flow
-        if (refreshToken) {
-          try {
-            const response = await fetch(`${request.nextUrl.origin}/api/auth/refresh`, {
-              method: 'POST',
-              headers: {
-                Cookie: `refreshToken=${refreshToken}`
+          if (!hasAccess(payload.role, currentSection)) {
+            const getHomeRoute = (role: string) => {
+              switch (role) {
+                case "SUPERADMIN":
+                  return "/super-admin/home";
+                case "ADMIN":
+                  return "/admin/home";
+                default:
+                  return "/dashboard/home";
               }
-            });
+            };
+            
+            return NextResponse.redirect(new URL(getHomeRoute(payload.role), request.url));
+          }
 
-            if (response.ok) {
-              const newResponse = NextResponse.next();
-              response.headers.getSetCookie().forEach(cookie => {
-                if (cookie.startsWith('accessToken=')) {
-                  newResponse.headers.set('Set-Cookie', cookie);
+          return NextResponse.next();
+
+        } catch (error) {
+          // On token verification error, try refresh flow if we haven't already
+          if (refreshToken && !request.headers.get('x-tried-refresh')) {
+            try {
+              const refreshResponse = await fetch(`${request.nextUrl.origin}/api/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                  Cookie: `refreshToken=${refreshToken}`,
+                  'x-tried-refresh': '1'
                 }
               });
-              return newResponse;
-            }
-          } catch (refreshError) {
-            console.error("Token refresh error:", refreshError);
-          }
-        }
 
-        const response = NextResponse.redirect(new URL("/", request.url));
-        response.cookies.set({
-          name: "accessToken",
-          value: "",
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          maxAge: 0,
-          path: "/"
-        });
-        response.cookies.set({
-          name: "refreshToken", 
-          value: "",
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          maxAge: 0,
-          path: "/"
-        });
-        return response;
+              if (refreshResponse.ok) {
+                const newResponse = NextResponse.next();
+                refreshResponse.headers.getSetCookie().forEach(cookie => {
+                  newResponse.headers.set('Set-Cookie', cookie);
+                });
+                return newResponse;
+              }
+            } catch (refreshError) {
+              console.error("Token refresh error:", refreshError);
+            }
+          }
+
+          // If refresh failed or wasn't possible, clear tokens and redirect
+          const response = NextResponse.redirect(new URL("/", request.url));
+          response.cookies.set({
+            name: "accessToken",
+            value: "",
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 0,
+            path: "/"
+          });
+          response.cookies.set({
+            name: "refreshToken", 
+            value: "",
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 0,
+            path: "/"
+          });
+          return response;
+        }
       }
+
+      return NextResponse.redirect(new URL("/", request.url));
     }
 
     // Prevent authenticated users from accessing home page

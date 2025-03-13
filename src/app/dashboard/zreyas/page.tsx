@@ -190,7 +190,7 @@ const Zreyas = () => {
         </div>
       </div>
 
-      <div className="mt-8 w-full">
+      {/* <div className="mt-8 w-full">
         <div className="bg-neutral-800 rounded-xl shadow-md p-6 w-full flex justify-between items-center flex-col md:flex-row">
           <div className="md:w-[80%]">
             <h1 className="text-[1.25rem] font-[700]">
@@ -227,7 +227,7 @@ const Zreyas = () => {
             </button>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

@@ -23,7 +23,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative sm:mt-2 overflow-hidden"
           >
             <Image
-              src={"/assets/sit-events/cultural-1.jpg"}
+              src={"/assets/sit-events/cultural-2.jpg"}
               className=" transition-transform duration-300 hover:scale-110"
               style={{ objectFit: "cover" }}
               fill
@@ -37,7 +37,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative bg-gradient-to-b from-slate-900 to-slate-950 p-2"
           >
             <p className="font-[600] text-[1.5rem] lg:text-[2rem]">
-              Extensive range of sports and games
+              Feel the energy and momentum
             </p>
           </div>
           <div
@@ -45,7 +45,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative sm:mt-2 overflow-hidden"
           >
             <Image
-              src={"/assets/sit-events/cultural-1.jpg"}
+              src={"/assets/sit-events/cultural-3.jpg"}
               style={{ objectFit: "cover" }}
               fill
               className="transition-transform duration-300 hover:scale-110"
@@ -59,7 +59,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative overflow-hidden"
           >
             <Image
-              src={"/assets/sit-events/cultural-1.jpg"}
+              src={"/assets/sit-events/cultural-4.jpg"}
               style={{ objectFit: "cover" }}
               fill
               className="transition-transform duration-300 hover:scale-110"
@@ -71,7 +71,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative bg-gradient-to-b from-slate-900 to-slate-950 p-2 sm:mt-2"
           >
             <p className="font-[600] text-[1.5rem] lg:text-[2rem]">
-              Carry the athletic sprit with the torch forward
+              Inspire and Innovate
             </p>
           </div>
         </div>
@@ -81,7 +81,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative bg-gradient-to-b from-slate-900 to-slate-950 p-2"
           >
             <p className="font-[600] text-[1.5rem] lg:text-[2rem]">
-              Enjoy the evening with music and dance
+              Two days filled with fun and excitement
             </p>
           </div>
           <div
@@ -89,7 +89,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative sm:mt-2 overflow-hidden"
           >
             <Image
-              src={"/assets/sit-events/cultural-1.jpg"}
+              src={"/assets/sit-events/cultural-5.jpg"}
               style={{ objectFit: "cover" }}
               fill
               className="transition-transform duration-300 hover:scale-110"
@@ -103,7 +103,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative overflow-hidden"
           >
             <Image
-              src={"/assets/sit-events/cultural-1.jpg"}
+              src={"/assets/sit-events/cultural-6.jpg"}
               style={{ objectFit: "cover" }}
               fill
               className="transition-transform duration-300 hover:scale-110"
@@ -115,7 +115,7 @@ const GridImages = () => {
             className="w-[10rem] h-[10rem] lg:w-[15rem] lg:h-[15rem] relative bg-gradient-to-b from-slate-900 to-slate-950 p-2 sm:mt-2"
           >
             <p className="font-[600] text-[1.5rem] lg:text-[2rem]">
-              Refresh-ments, Medals and Trophies
+              Apart from being engineers, we are also artists
             </p>
           </div>
         </div>

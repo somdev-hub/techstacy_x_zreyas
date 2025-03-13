@@ -130,7 +130,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     fetchUser();
 
-    // Set up automatic token refresh - try to refresh 1 minute before expiry
+    // Set up automatic token refresh - refresh 2 minutes before expiry
     const refreshInterval = setInterval(() => {
       refreshToken()
         .then((userData) => {
@@ -139,15 +139,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
         .catch((error) => {
           console.error("Auto refresh failed:", error);
           // Only redirect if not already on home page
-          if (pathname !== "/") {
+          if (pathname !== "/" && error.message?.includes("Token refresh failed")) {
             router.replace("/");
             toast.error("Session expired. Please log in again.");
           }
         });
-    }, 14 * 60 * 1000); // 14 minutes
+    }, 13 * 60 * 1000); // 13 minutes
+
+    // Additional check on focus/visibility change
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchUser().catch(console.error);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [fetchUser, pathname, router]);
 

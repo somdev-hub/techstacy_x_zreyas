@@ -20,12 +20,12 @@ export function LoginModalProvider({
 
   const openLoginModal = () => {
     setIsLoginOpen(true);
-    document.body.style.overflow = "hidden";
+    document.body.classList.add('has-modal');
   };
 
   const closeLoginModal = () => {
     setIsLoginOpen(false);
-    document.body.style.overflow = "unset";
+    document.body.classList.remove('has-modal');
   };
 
   return (

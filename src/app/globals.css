@@ -156,6 +156,12 @@ body {
   }
 }
 
+/* Add modal styles */
+body.has-modal {
+  @apply overflow-hidden fixed inset-0;
+  @apply h-[100dvh] w-[100dvw];
+}
+
 .dark-grey {
   --tw-bg-opacity: 1;
   background-color: rgb(38 38 38 / var(--tw-bg-opacity));

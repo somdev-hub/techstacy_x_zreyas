@@ -14,12 +14,12 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
 
   const openModal = () => {
     setIsOpen(true);
-    document.body.style.overflow = "hidden";
+    document.body.classList.add('has-modal');
   };
 
   const closeModal = () => {
     setIsOpen(false);
-    document.body.style.overflow = "unset";
+    document.body.classList.remove('has-modal');
   };
 
   return (

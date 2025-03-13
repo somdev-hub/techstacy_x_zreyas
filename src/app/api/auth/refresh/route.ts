@@ -26,7 +26,7 @@ export async function POST() {
 
     if (!refreshToken) {
       return NextResponse.json(
-        { error: "Refresh token not provided" },
+        { error: "Refresh token not provided", code: "TOKEN_MISSING" },
         { status: 401 }
       );
     }
@@ -38,7 +38,13 @@ export async function POST() {
     const result = await prisma.$transaction(async (tx) => {
       // Lock the refresh token record for update using the hash
       const tokenInDb = await tx.refreshToken.findFirst({
-        where: { tokenHash },
+        where: { 
+          tokenHash,
+          // Add check for token expiry
+          expiresAt: {
+            gt: new Date()
+          }
+        },
         include: {
           user: {
             select: {
@@ -52,7 +58,7 @@ export async function POST() {
       });
 
       if (!tokenInDb) {
-        return { error: "Refresh token not found or revoked", status: 401 };
+        return { error: "Refresh token not found, revoked, or expired", code: "TOKEN_INVALID", status: 401 };
       }
 
       // Verify refresh token and check if it matches the user
@@ -93,14 +99,14 @@ export async function POST() {
           }
         });
 
-        // Clean up expired tokens
-        await tx.refreshToken.deleteMany({
+        // Clean up expired tokens in background after transaction
+        tx.refreshToken.deleteMany({
           where: {
             expiresAt: {
               lt: new Date()
             }
           }
-        });
+        }).catch(err => console.error('Error cleaning up expired tokens:', err));
 
         return {
           accessToken: newAccessToken,
@@ -113,18 +119,9 @@ export async function POST() {
           }
         };
       } catch (error) {
-        // If token verification fails, delete the token and all expired tokens
+        // If token verification fails, delete the token
         await tx.refreshToken.delete({
           where: { id: tokenInDb.id }
-        });
-        
-        // Clean up expired tokens
-        await tx.refreshToken.deleteMany({
-          where: {
-            expiresAt: {
-              lt: new Date()
-            }
-          }
         });
         
         throw error;
@@ -133,7 +130,7 @@ export async function POST() {
 
     if ('error' in result) {
       const response = NextResponse.json(
-        { error: result.error },
+        { error: result.error, code: result.code },
         { status: result.status }
       );
       // Clear cookies on error
@@ -166,7 +163,7 @@ export async function POST() {
 
     // Clear cookies on any error
     const response = NextResponse.json(
-      { error: "Token refresh failed" },
+      { error: "Token refresh failed", code: "REFRESH_FAILED" },
       { status: 401 }
     );
     response.cookies.set("accessToken", "", { ...getCookieOptions(0) });

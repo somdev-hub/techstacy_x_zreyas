@@ -199,9 +199,9 @@ export default function Home() {
         <div className="w-full">
           <GridImages />
         </div>
-        <div className="w-full">
+        {/* <div className="w-full">
           <Sponsors />
-        </div>
+        </div> */}
       </div>
       <MusicCD />
       <Footer />

@@ -46,7 +46,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Notification fetch error:", error);
-      toast.error("Failed to fetch notifications");
+      // toast.error("Failed to fetch notifications");
     }
   }, [user]);
 

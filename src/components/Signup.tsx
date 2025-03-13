@@ -80,7 +80,27 @@ export function Signup() {
   };
 
   return (
-    <div className="max-w-md w-full mx-auto rounded-2xl p-8 shadow-input bg-black">
+    <div className="max-w-md w-full h-[80dvh] md:h-auto mx-auto rounded-2xl p-8 shadow-input bg-black overflow-y-auto relative">
+      <button
+        onClick={closeModal}
+        className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-200 transition-colors"
+        aria-label="Close modal"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
       <h2 className="font-bold text-xl text-neutral-200">
         Welcome to Techstacy
       </h2>

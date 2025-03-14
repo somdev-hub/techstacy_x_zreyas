@@ -3,9 +3,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  IconArrowLeft,
   IconBrandTabler,
-  IconSettings,
   IconMenu2,
   IconTrophy,
   IconMapPin,
@@ -22,8 +20,7 @@ import { FaBell } from "react-icons/fa";
 import Notification from "@/components/Notification";
 import { useNotifications } from "@/context/NotificationContext";
 import { useUser } from "@/context/UserContext";
-import { Events, Year } from "@prisma/client";
-import { User, EventAssociation } from "@/context/UserContext";
+import { Year } from "@prisma/client";
 
 export default function DashboardLayout({
   children,

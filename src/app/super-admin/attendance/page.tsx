@@ -97,7 +97,7 @@ const Attendance = () => {
       <div className="mt-8 w-full flex flex-col gap-8">
         {/* Event Attendance Table */}
         <div className="bg-neutral-800 rounded-xl shadow-md p-4 overflow-fix">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col md:flex-row gap-2 md:gap-0 justify-between items-center mb-4">
             <h1 className="text-[1.125rem] font-[700]">Event Attendance</h1>
             <div className="flex gap-4">
               <select

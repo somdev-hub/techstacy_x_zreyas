@@ -7,6 +7,8 @@ import {
   IconBrandTabler,
   IconSettings,
   IconMenu2,
+  IconTrophy,
+  IconMapPin,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
@@ -65,7 +67,7 @@ export default function DashboardLayout({
       label: "Results",
       href: "/admin/results",
       icon: (
-        <IconSettings className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+        <IconTrophy className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
     },
     // Only show treasure hunt link for treasure hunt event heads
@@ -75,7 +77,7 @@ export default function DashboardLayout({
             label: "Treasure Hunt",
             href: "/admin/treasure-hunt",
             icon: (
-              <IconSettings className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
+              <IconMapPin className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
             ),
           },
         ]

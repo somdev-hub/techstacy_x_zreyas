@@ -94,13 +94,7 @@ export default function SuperAdminLayout({
         <IconCalendarEvent className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
       ),
     },
-    {
-      label: "Payments",
-      href: "/super-admin/payments",
-      icon: (
-        <IconCreditCard className="h-6 w-6 flex-shrink-0 text-neutral-200 transition-colors group-hover:text-white" />
-      ),
-    },
+    
     {
       label: "Results",
       href: "/super-admin/results",

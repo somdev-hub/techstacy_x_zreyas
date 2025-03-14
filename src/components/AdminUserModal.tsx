@@ -13,6 +13,7 @@ import {
   FaCheck,
   FaTimes as FaCancel,
   FaChevronDown,
+  FaTrash,
 } from "react-icons/fa";
 import { Events } from "@prisma/client";
 import { toast } from "sonner";
@@ -34,6 +35,7 @@ interface AdminUserModalProps {
     eventHeads?: { eventId: number; name: string; eventName: Events }[];
   };
   onUpdate?: () => void; // Callback to refresh the users list after update
+  currentUserRole?: string; // Add role of current logged in user
 }
 
 const AdminUserModal = ({
@@ -41,12 +43,15 @@ const AdminUserModal = ({
   onClose,
   userInfo: initialUserInfo,
   onUpdate,
+  currentUserRole,
 }: AdminUserModalProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedEvents, setSelectedEvents] = useState<Events[]>([]);
   const [isEventDropdownOpen, setIsEventDropdownOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const isSuperAdmin = currentUserRole === "SUPERADMIN";
 
   // Ensure default values for all form fields to prevent controlled/uncontrolled input warnings
   const defaultValues = {
@@ -109,6 +114,35 @@ const AdminUserModal = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleDeleteUser = async () => {
+    if (!initialUserInfo.id) {
+      toast.error("User ID is missing");
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      const response = await fetch(`/api/users/${initialUserInfo.id}/delete`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete user");
+      }
+
+      toast.success("User deleted successfully");
+      if (onUpdate) onUpdate();
+      onClose();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error(error.message || "Failed to delete user");
+    } finally {
+      setIsUpdating(false);
+      setShowDeleteConfirmation(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -180,10 +214,41 @@ const AdminUserModal = ({
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl">
             <div className="flex flex-col items-center gap-3">
               <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-neutral-300">Updating user...</p>
+              <p className="text-sm text-neutral-300">
+                {showDeleteConfirmation ? "Deleting user..." : "Updating user..."}
+              </p>
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirmation && (
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl">
+            <div className="bg-neutral-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+              <h3 className="text-xl font-bold mb-4 text-red-500">Confirm Delete</h3>
+              <p className="mb-6">
+                Are you sure you want to delete this user? This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirmation(false)}
+                  className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteUser}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="p-3 sm:p-4 border-b border-neutral-700 flex justify-between items-center">
           <h2 className="text-lg sm:text-xl font-bold">
@@ -192,6 +257,17 @@ const AdminUserModal = ({
           <div className="flex items-center gap-1 sm:gap-2">
             {!isEditing ? (
               <>
+                {/* Delete Button for SUPERADMIN only */}
+                {isSuperAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirmation(true)}
+                    className="hover:bg-red-900 p-1.5 sm:p-2 rounded-full flex items-center gap-1 text-red-500 hover:text-red-400"
+                    title="Delete User"
+                  >
+                    <FaTrash />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleEditToggle}

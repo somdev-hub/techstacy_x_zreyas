@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useUser } from "@/context/UserContext";
 
 interface User {
   id: number;
@@ -36,6 +37,7 @@ const Registrations = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { user } = useUser();
 
   useEffect(() => {
     fetchUsers();
@@ -64,7 +66,7 @@ const Registrations = () => {
       const response = await fetch(`/api/users/${user.id}`);
       if (!response.ok) throw new Error("Failed to fetch user details");
       const userData = await response.json();
-      
+
       // Update with detailed data once available
       const formattedUser = {
         id: userData.id,
@@ -77,9 +79,9 @@ const Registrations = () => {
         imageUrl: userData.imageUrl || "",
         role: userData.role || "",
         eventParticipation: userData.eventParticipation || [],
-        eventHeads: userData.eventHeads || []
+        eventHeads: userData.eventHeads || [],
       };
-      
+
       setSelectedUser(formattedUser);
     } catch (error) {
       console.error("Error fetching user details:", error);
@@ -163,9 +165,10 @@ const Registrations = () => {
             imageUrl: selectedUser.imageUrl || "",
             role: selectedUser.role || "",
             eventParticipation: selectedUser.eventParticipation || [],
-            eventHeads: selectedUser.eventHeads || []
+            eventHeads: selectedUser.eventHeads || [],
           }}
           onUpdate={handleUserUpdate}
+          currentUserRole={user?.role}
         />
       )}
     </div>

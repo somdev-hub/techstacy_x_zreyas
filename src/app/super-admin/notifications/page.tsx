@@ -382,7 +382,7 @@ export default function NotificationsManagement() {
           </div>
 
           {/* Top Recipients Table */}
-          <div className="p-4 bg-neutral-800/50 rounded-lg shadow-lg border border-neutral-700 backdrop-blur-sm">
+          <div className="bg-neutral-800 rounded-xl shadow-md p-4 max-h-[475px] w-full overflow-fix overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Top Recipients</h3>
             <div className="overflow-x-auto">
               <Table>

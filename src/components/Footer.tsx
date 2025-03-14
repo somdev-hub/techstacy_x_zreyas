@@ -69,10 +69,7 @@ const Footer = () => {
                 <Phone size={18} />
                 <span>Ankit Roy: +91 898 989 8320</span>
               </div>
-              <div className="flex items-center space-x-3">
-                <Mail size={18} />
-                <span>contact@techstacyxzreyas.com</span>
-              </div>
+
               <div className="flex items-center space-x-3">
                 <MapPin size={18} />
                 <span>Silicon Institute of Technology, Sambalpur</span>

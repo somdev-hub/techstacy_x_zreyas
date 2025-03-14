@@ -9,17 +9,19 @@ export async function GET() {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("accessToken")?.value;
-    
+
     if (!token) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const decoded = await verifyAccessToken(token);
-    if (!decoded.userId || !decoded.email || !decoded.role || decoded.role !== 'SUPERADMIN') {
-      return NextResponse.json(
-        { error: "Not authorized" },
-        { status: 403 }
-      );
+    if (
+      !decoded.userId ||
+      !decoded.email ||
+      !decoded.role ||
+      decoded.role !== "SUPERADMIN"
+    ) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
     // Get all event participants
@@ -34,8 +36,8 @@ export async function GET() {
             college: true,
             year: true,
             sic: true,
-            phone: true
-          }
+            phone: true,
+          },
         },
         event: {
           select: {
@@ -45,15 +47,15 @@ export async function GET() {
             eventType: true,
             participationType: true,
             imageUrl: true,
-            partialRegistration: true
-          }
+            partialRegistration: true,
+          },
         },
         otherParticipants: {
           // Get team members registered by this participant
           where: {
             mainParticipantId: {
-              not: null
-            }
+              not: null,
+            },
           },
           include: {
             user: {
@@ -65,17 +67,22 @@ export async function GET() {
                 college: true,
                 year: true,
                 sic: true,
-                phone: true
-              }
-            }
-          }
-        }
-      }
+                phone: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     return NextResponse.json(participants);
   } catch (error) {
-    console.error("Failed to fetch event participants:", error);
+    console.error(
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch event participants:",
+      error
+    );
     return NextResponse.json(
       { error: "Failed to fetch event participants" },
       { status: 500 }

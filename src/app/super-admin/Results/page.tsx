@@ -137,7 +137,7 @@ export default function Results() {
   );
 
   return (
-    <div className="bg-neutral-900 overflow-y-scroll no-visible-scrollbar pt-6 w-full px-8 my-2 mr-2 rounded-2xl">
+    <div className="bg-neutral-900 overflow-y-scroll no-visible-scrollbar pt-6 w-full px-4 md:px-8 my-2 mr-2 rounded-2xl">
       <div className="">
         <h1 className="text-[1.5rem] font-[700]">Manage Results</h1>
       </div>

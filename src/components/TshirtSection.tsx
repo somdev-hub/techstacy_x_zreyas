@@ -1,7 +1,29 @@
 import Image from "next/image";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 
 const TshirtSection = () => {
+  const razorpayFormRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (razorpayFormRef.current) {
+      // Clear any existing scripts
+      while (razorpayFormRef.current.firstChild) {
+        razorpayFormRef.current.removeChild(razorpayFormRef.current.firstChild);
+      }
+
+      // Create form and script elements
+      const form = document.createElement("form");
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/payment-button.js";
+      script.setAttribute(
+        "data-payment_button_id",
+        process.env.NEXT_PUBLIC_RAZORPAY_TSHIRT_BUTTON_ID || ""
+      );
+      script.async = true;
+
+      form.appendChild(script);
+      razorpayFormRef.current.appendChild(form);
+    }
+  }, []);
   return (
     <div className="py-20 xl:px-[8rem] px-4">
       <div className=" bg-slate-900 p-6 md:p-12 rounded-lg shadow-lg">
@@ -21,9 +43,11 @@ const TshirtSection = () => {
               enthusiasts of all ages. Order yours today and be a part of the
               Techstacy X Zreyas experience.{" "}
             </p>
-            <button className="bg-white text-black py-2 px-4 rounded-lg hover:bg-white/10 transition-colors font-bold mt-4 hover:text-white">
-              Order Now
-            </button>
+            <div ref={razorpayFormRef} className="w-full flex justify-start">
+              {/* <button className="bg-white text-black py-2 px-4 rounded-lg hover:bg-white/10 transition-colors font-bold mt-4 hover:text-white">
+                Order Now
+              </button> */}
+            </div>
           </div>
           <div className="items-center flex md:w-2/5">
             <Image

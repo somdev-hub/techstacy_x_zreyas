@@ -68,9 +68,7 @@ const Home = () => {
       text: "Order Now",
       onClick: handleTshirtOrder,
       razorpay: true,
-      paymentButtonId:
-        process.env.NEXT_PUBLIC_RAZORPAY_TSHIRT_BUTTON_ID ||
-        "pl_PjDCUxfpQR0y5x",
+      paymentButtonId: process.env.NEXT_PUBLIC_RAZORPAY_TSHIRT_BUTTON_ID || "",
     },
   };
 

@@ -101,11 +101,33 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
       setValue("prizePool", active.prizePool.toString());
       setValue("description", active.description);
       setValue("venue", active.venue);
-      setValue("date", active.date);
+      
+      // Handle date formatting
+      try {
+        const dateObj = new Date(active.date);
+        if (!isNaN(dateObj.getTime())) {
+          // If it's a valid date, format it as YYYY-MM-DD
+          const year = dateObj.getFullYear();
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const day = String(dateObj.getDate()).padStart(2, '0');
+          const formattedDate = `${year}-${month}-${day}`;
+          setValue("date", formattedDate);
+        } else {
+          // If direct parsing fails, try splitting (assuming DD/MM/YYYY format)
+          const [day, month, year] = active.date.split('/');
+          if (day && month && year) {
+            const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            setValue("date", formattedDate);
+          }
+        }
+      } catch (error) {
+        console.error("Error formatting date:", error);
+      }
+
       setValue("time", active.time);
       setValue("eventType", active.eventType);
       setValue("participationType", active.participationType);
-      setValue("partialRegistration", active.partialRegistration); // Set partialRegistration value
+      setValue("partialRegistration", active.partialRegistration);
     }
   }, [active, isEditing, setValue]);
 

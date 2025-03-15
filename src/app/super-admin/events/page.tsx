@@ -14,6 +14,7 @@ interface Event {
   time: string;
   venue: string;
   participationType: ParticipationType;
+  registrationFee: number; // This field is not in the schema
   prizePool: number;
   createdAt: string; // Will be converted from DateTime
   updatedAt: string; // Will be converted from DateTime
@@ -34,7 +35,7 @@ const EventsPage = () => {
         }
         const data = await response.json();
         // console.log(data);
-        
+
         setEvents(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch events");
@@ -62,7 +63,7 @@ const EventsPage = () => {
     );
   }
 
-  const transformedEvents = events.map(event => ({
+  const transformedEvents = events.map((event) => ({
     id: event.id,
     title: event.name,
     desc: event.description,
@@ -72,10 +73,10 @@ const EventsPage = () => {
     key: event.eventName,
     participationType: event.participationType,
     eventType: event.eventType,
-    registrationFee: 0, // This field is not in the schema
+    registrationFee: event.registrationFee, // This field is not in the schema
     prizePool: event.prizePool,
     venue: event.venue,
-    partialRegistration: event.partialRegistration || false // Include partialRegistration field with default false
+    partialRegistration: event.partialRegistration || false, // Include partialRegistration field with default false
   }));
 
   return (

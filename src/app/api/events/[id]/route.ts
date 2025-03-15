@@ -1,4 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import {
+  PrismaClient,
+  Events,
+  EventType,
+  ParticipationType,
+} from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { uploadFile } from "@/config/aws";
 
@@ -11,89 +16,94 @@ export async function PATCH(
 ) {
   try {
     const formData = await req.formData();
-    const eventId = parseInt((await params).id);
+    const name = formData.get("name") as string;
+    const eventName = formData.get("eventName") as Events;
+    const prizePool = formData.get("prizePool") as string;
+    const registrationFee = formData.get("registrationFee") as string;
+    const description = formData.get("description") as string;
+    const venue = formData.get("venue") as string;
+    const date = formData.get("date") as string;
+    const time = formData.get("time") as string;
+    const eventType = formData.get("eventType") as EventType;
+    const participationType = formData.get(
+      "participationType"
+    ) as ParticipationType;
+    const partialRegistration = formData.get("partialRegistration") === "true";
+    const image = formData.get("image");
 
-    // Verify event exists
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
+    // Validate required fields
+    if (
+      !name ||
+      !description ||
+      !date ||
+      !time ||
+      !eventType ||
+      !participationType ||
+      !eventName ||
+      !prizePool ||
+      !registrationFee ||
+      !venue
+    ) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Get existing event
+    const existingEvent = await prisma.event.findUnique({
+      where: { id: parseInt((await params).id) },
     });
 
-    if (!event) {
+    if (!existingEvent) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    // Build update data from form
-    const updateData: any = {};
-
-    // Handle optional text fields
-    const textFields = ["name", "description", "venue", "time"];
-    textFields.forEach((field) => {
-      const value = formData.get(field);
-      if (value) updateData[field] = value;
-    });
-
-    // Handle optional enum fields
-    const enumFields = ["eventName", "eventType", "participationType"];
-    enumFields.forEach((field) => {
-      const value = formData.get(field);
-      if (value) updateData[field] = value;
-    });
-
-    // Handle optional numeric fields
-    const numericFields = ["prizePool"];
-    numericFields.forEach((field) => {
-      const value = formData.get(field);
-      if (value) updateData[field] = parseInt(value as string);
-    });
-
-    // Handle date field
-    const date = formData.get("date");
-    if (date) {
-      updateData.date = new Date(date as string);
-    }
-
-    // Handle boolean fields
-    const partialRegistration = formData.get("partialRegistration");
-    if (partialRegistration !== null) {
-      updateData.partialRegistration = partialRegistration === "true";
-    }
-
-    // Handle image upload if provided
-    const imageFile = formData.get("image") as File;
-    if (imageFile?.size > 0) {
-      try {
-        const buffer = Buffer.from(await imageFile.arrayBuffer());
-        const fileName = `events/${eventId}/${Date.now()}-${imageFile.name}`;
-        const imageUrl = await uploadFile(buffer, fileName, imageFile.type);
-
-        if (!imageUrl) {
-          throw new Error("Image upload failed");
-        }
-
-        updateData.imageUrl = imageUrl;
-      } catch (uploadError) {
-        console.error("Image upload error:", uploadError);
-        return NextResponse.json(
-          { error: "Failed to upload image" },
-          { status: 500 }
-        );
-      }
+    // Handle image upload if new image provided and it's a valid File object
+    let imageUrl = existingEvent.imageUrl;
+    if (image instanceof File) {
+      const buffer = Buffer.from(await image.arrayBuffer());
+      const fileName = `events/${Date.now()}-${image.name}`;
+      imageUrl = await uploadFile(buffer, fileName, image.type);
     }
 
     // Update event
-    const updatedEvent = await prisma.event.update({
-      where: { id: eventId },
-      data: updateData,
-    });
-
-    return NextResponse.json(updatedEvent);
+    try {
+      const updatedEvent = await prisma.event.update({
+        where: { id: parseInt((await params).id) },
+        data: {
+          name,
+          description,
+          date: new Date(date),
+          time,
+          eventType,
+          participationType,
+          eventName,
+          prizePool: parseInt(prizePool),
+          registrationFee: parseInt(registrationFee),
+          venue,
+          imageUrl,
+          partialRegistration,
+        },
+      });
+      return NextResponse.json(updatedEvent);
+    } catch (error) {
+      console.log(
+        error instanceof Error ? error.message : "Error updating event:",
+        error
+      );
+      return NextResponse.json(
+        { error: "Failed to update event" },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    console.error("Error updating event:", error);
+    console.log(
+      error instanceof Error ? error.message : "Error updating event:",
+      error
+    );
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to update event",
-      },
+      { error: "Failed to update event" },
       { status: 500 }
     );
   }

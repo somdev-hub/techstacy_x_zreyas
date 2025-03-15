@@ -143,6 +143,7 @@ model Event {
   updatedAt           DateTime           @updatedAt
   participants        EventParticipant[]
   prizePool           Int                @default(0)
+  registrationFee     Int                @default(0)
   eventResults        EventResult[]
 }
 
@@ -175,13 +176,15 @@ model EventParticipant {
 
   updatedAt         DateTime           @default(now())
   isConfirmed       Boolean            @default(false)
-  isAttended        Boolean            @default(false) // Moved from EventQR
-  qrCode            String? // Moved from EventQR
+  isAttended        Boolean            @default(false)
+  qrCode            String?
   mainParticipantId Int? // ID of the main participant who registered the team
   mainParticipant   EventParticipant?  @relation("TeamMembers", fields: [mainParticipantId], references: [id], onDelete: SetNull)
   otherParticipants EventParticipant[] @relation("TeamMembers")
   treasureHunt      TreasureHunt?
   clueScans         ClueScans[]
+
+  @@unique([eventId, userId])
 }
 
 model EventResult {
@@ -272,7 +275,7 @@ model Clues {
   thirdClueId  Int
   finalClueId  Int
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now())
 
   firstClue  ClueObject @relation("FirstClue", fields: [firstClueId], references: [id])
   secondClue ClueObject @relation("SecondClue", fields: [secondClueId], references: [id])
@@ -297,7 +300,7 @@ model WinnerClue {
   clue      String
   qrCode    String   @unique
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now())
 }
 
 model NotificationQueue {

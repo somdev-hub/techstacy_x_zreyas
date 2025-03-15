@@ -28,6 +28,7 @@ export async function GET() {
         time: true,
         venue: true,
         prizePool: true,
+        registrationFee: true,
         partialRegistration: true,
       },
     });
@@ -43,6 +44,7 @@ export async function GET() {
       participationType: event.participationType,
       eventType: event.eventType,
       prizePool: event.prizePool,
+      registrationFee: event.registrationFee,
       venue: event.venue,
       partialRegistration: event.partialRegistration,
     }));
@@ -64,30 +66,18 @@ export async function POST(req: NextRequest) {
     const name = formData.get("name") as string;
     const eventName = formData.get("eventName") as Events;
     const prizePool = formData.get("prizePool") as string;
+    const registrationFee = formData.get("registrationFee") as string;
     const description = formData.get("description") as string;
     const venue = formData.get("venue") as string;
     const date = formData.get("date") as string;
     const time = formData.get("time") as string;
     const eventType = formData.get("eventType") as EventType;
-    const participationType = formData.get(
-      "participationType"
-    ) as ParticipationType;
+    const participationType = formData.get("participationType") as ParticipationType;
     const partialRegistration = formData.get("partialRegistration") === "true";
-    const image = formData.get("image") as File;
+    const image = formData.get("image");
 
     // Validate required fields
-    if (
-      !name ||
-      !description ||
-      !date ||
-      !time ||
-      !eventType ||
-      !participationType ||
-      !eventName ||
-      !prizePool ||
-      !venue ||
-      !image
-    ) {
+    if (!name || !description || !date || !time || !eventType || !participationType || !eventName || !prizePool || !registrationFee || !venue || !image) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -95,7 +85,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate enum values
-    if (!Object.values(Events).includes(eventName as Events)) {
+    if (!Object.values(Events).includes(eventName)) {
       return NextResponse.json(
         { error: "Invalid event name" },
         { status: 400 }
@@ -128,40 +118,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Handle image upload
-    const buffer = Buffer.from(await image.arrayBuffer());
-    const fileName = `events/${Date.now()}-${image.name}`;
-    const imageUrl = await uploadFile(buffer, fileName, image.type);
-
-    // Create event
-    try {
-      const newEvent = await prisma.event.create({
-        data: {
-          name,
-          description,
-          date: new Date(date),
-          time,
-          eventType,
-          participationType,
-          eventName,
-          prizePool: parseInt(prizePool),
-          venue,
-          imageUrl,
-          partialRegistration,
-        },
-      });
-      return NextResponse.json(newEvent, { status: 201 });
-    } catch (error) {
-      console.log(
-        error instanceof Error ? error.message : "Failed to create event:"
+    // Handle image upload if it's a valid File object
+    let imageUrl;
+    if (image instanceof File) {
+      const buffer = Buffer.from(await image.arrayBuffer());
+      const fileName = `events/${Date.now()}-${image.name}`;
+      imageUrl = await uploadFile(buffer, fileName, image.type);
+    } else {
+      return NextResponse.json(
+        { error: "Invalid image file" },
+        { status: 400 }
       );
     }
+
+    // Create event
+    const newEvent = await prisma.event.create({
+      data: {
+        name,
+        description,
+        date: new Date(date),
+        time,
+        eventType,
+        participationType,
+        eventName,
+        prizePool: parseInt(prizePool),
+        registrationFee: parseInt(registrationFee),
+        venue,
+        imageUrl,
+        partialRegistration,
+      },
+    });
+
+    return NextResponse.json(newEvent, { status: 201 });
   } catch (error) {
-    console.log(
-      error instanceof Error ? error.message : "Failed to create event:"
-    );
+    console.error("Error creating event:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to create event" },
       { status: 500 }
     );
   }

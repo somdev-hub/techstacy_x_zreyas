@@ -43,6 +43,7 @@ const eventFormSchema = z.object({
     required_error: "Please select an event",
   }),
   prizePool: z.string().min(1, "Please enter a prize pool"),
+  registrationFee: z.string().min(1, "Please enter a registration fee"),
   venue: z.string().min(1, "Please enter a venue"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   date: z.string().min(1, "Please enter a date"),
@@ -268,6 +269,7 @@ const Home = () => {
       formData.append("name", data.name);
       formData.append("eventName", data.eventName);
       formData.append("prizePool", data.prizePool);
+      formData.append("registrationFee", data.registrationFee);
       formData.append("description", data.description);
       formData.append("venue", data.venue);
       formData.append("date", data.date);
@@ -645,6 +647,19 @@ const Home = () => {
                 {eventErrors.prizePool && (
                   <p className="text-red-500 text-sm mt-1">
                     {eventErrors.prizePool.message}
+                  </p>
+                )}
+              </div>
+              <div className="">
+                <input
+                  type="text"
+                  placeholder="Registration Fee"
+                  {...registerEvent("registrationFee")}
+                  className="bg-neutral-700 rounded-md px-3 py-2 h-10 w-full"
+                />
+                {eventErrors.registrationFee && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {eventErrors.registrationFee.message}
                   </p>
                 )}
               </div>

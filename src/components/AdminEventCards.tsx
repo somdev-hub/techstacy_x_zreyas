@@ -21,6 +21,7 @@ interface AdminEventCardProps {
     participationType: ParticipationType;
     eventType: EventType;
     prizePool: number;
+    registrationFee: number;
     venue: string;
     partialRegistration?: boolean; // Add partialRegistration field
   }[];
@@ -42,6 +43,7 @@ const eventFormSchema = z.object({
   participationType: z.nativeEnum(ParticipationType, {
     required_error: "Please select a participation type",
   }),
+  registrationFee: z.string().min(1, "Please enter a registration fee"),
   partialRegistration: z.boolean().default(false), // Add partialRegistration to schema
   image: z.any().optional(),
 });
@@ -57,6 +59,7 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
     participationType: ParticipationType;
     eventType: EventType;
     prizePool: number;
+    registrationFee: number;
     date: string;
     time: string;
     venue: string;
@@ -87,6 +90,7 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
     participationType: event?.participationType,
     eventType: event?.eventType,
     prizePool: event?.prizePool,
+    registrationFee: event?.registrationFee,
     date: event?.date,
     time: event?.time,
     venue: event?.venue,
@@ -184,11 +188,14 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
       setIsSubmitting(true);
       const formData = new FormData();
 
-      formData.append("eventKey", active.eventName); // Add event key
-      // Add all form fields to formData
+      // Add event key and other form fields to formData
       Object.entries(data).forEach(([key, value]) => {
-        if (key === "image" && value?.[0]) {
-          formData.append("image", value[0]);
+        if (key === "image") {
+          // Only append image if a new file is selected
+          const fileList = value as FileList;
+          if (fileList?.[0]) {
+            formData.append("image", fileList[0]);
+          }
         } else if (key === "partialRegistration") {
           formData.append(key, value ? "true" : "false");
         } else if (value !== undefined && value !== null) {
@@ -201,6 +208,7 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
       window.location.reload();
     } catch (error) {
       console.error("Failed to update event:", error);
+      toast.error("Failed to update event. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -269,6 +277,22 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
               </p>
             )}
           </div>
+          <div>
+            <input
+              type="text"
+              placeholder="Registration Fee"
+              {...register("registrationFee")}
+              className="bg-neutral-700 rounded-md px-3 py-2 h-10 w-full"
+            />
+            {errors.registrationFee && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.registrationFee.message}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <input
               type="text"
@@ -424,6 +448,9 @@ export function AdminEventCard({ cardData }: AdminEventCardProps) {
         </p>
         <p className="mb-2">
           <strong>Prize Pool:</strong> ₹{activeCard.prizePool}
+        </p>
+        <p className="mb-2">
+          <strong>Registration Fee:</strong> ₹{activeCard.registrationFee}
         </p>
         <p className="mb-2">
           <strong>Partial Registration:</strong>{" "}

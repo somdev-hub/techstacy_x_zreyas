@@ -29,17 +29,28 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Techstacy X Zreyas",
     description:
-      "The annual tech adn cultural fest of Silicon Institute of Technology, Sambalpur",
+      "The annual tech and cultural fest of Silicon Institute of Technology, Sambalpur",
     type: "website",
+    locale: "en_US",
     siteName: "Techstacy X Zreyas",
     url: "https://techstacy-x-zreyas.sitwestevents.live",
     images: [
       {
         url: "https://beautiful-gold-bison.myfilebase.com/ipfs/QmY6ZTZD3aFKSrQpcELKKvAaKEcT6ur78AHDNHnbvASggi",
-        width: 500,
-        height: 300,
+        width: 1200,
+        height: 630,
         alt: "Techstacy X Zreyas",
+        type: "image/jpeg",
       },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Techstacy X Zreyas",
+    description:
+      "The annual tech and cultural fest of Silicon Institute of Technology, Sambalpur",
+    images: [
+      "https://beautiful-gold-bison.myfilebase.com/ipfs/QmY6ZTZD3aFKSrQpcELKKvAaKEcT6ur78AHDNHnbvASggi",
     ],
   },
 };

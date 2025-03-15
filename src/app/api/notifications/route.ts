@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { userFromRequest } from "@/lib/auth";
 import { NotificationService } from "@/lib/notification-service";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
@@ -29,11 +28,12 @@ if (
 export async function GET(req: NextRequest) {
   try {
     const cookieStore = await cookies();
+
     const token = cookieStore.get("accessToken")?.value;
 
     if (!token) {
       console.log("No token found in cookies");
-      
+
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -42,8 +42,8 @@ export async function GET(req: NextRequest) {
     const decoded = await verifyAccessToken(token);
 
     if (!decoded.userId || !decoded.email) {
-      console.log("No token found in cookies");
-      
+      console.log("UserId or email not found in cookie:", decoded);
+
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
@@ -78,7 +78,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(notifications);
   } catch (error) {
-    console.error("Error fetching notifications:", error);
+    console.error(
+      error instanceof Error ? error.message : "Error fetching notifications:",
+      error
+    );
     return NextResponse.json(
       { error: "Failed to fetch notifications" },
       { status: 500 }

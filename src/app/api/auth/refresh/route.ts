@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { PrismaClient } from "@prisma/client";
-import crypto from 'crypto';
-import { verifyRefreshToken, createAccessToken, createRefreshToken } from "@/lib/jose-auth";
+import crypto from "crypto";
+import {
+  verifyRefreshToken,
+  createAccessToken,
+  createRefreshToken,
+} from "@/lib/jose-auth";
 
 const prisma = new PrismaClient();
 
@@ -32,103 +36,135 @@ export async function POST() {
     }
 
     // Create hash of the provided refresh token
-    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(refreshToken)
+      .digest("hex");
 
     // Start a transaction for atomic operations
-    const result = await prisma.$transaction(async (tx) => {
-      // Lock the refresh token record for update using the hash
-      const tokenInDb = await tx.refreshToken.findFirst({
-        where: { 
-          tokenHash,
-          // Add check for token expiry
-          expiresAt: {
-            gt: new Date()
-          }
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              role: true,
-              name: true
-            }
-          }
+    const result = await prisma
+      .$transaction(async (tx) => {
+        // Lock the refresh token record for update using the hash
+        const tokenInDb = await tx.refreshToken
+          .findFirst({
+            where: {
+              tokenHash,
+              // Add check for token expiry
+              expiresAt: {
+                gt: new Date(),
+              },
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  role: true,
+                  name: true,
+                },
+              },
+            },
+          })
+          .catch((err) => {
+            console.log(err instanceof Error ? err.message : err);
+          });
+
+        if (!tokenInDb) {
+          return {
+            error: "Refresh token not found, revoked, or expired",
+            code: "TOKEN_INVALID",
+            status: 401,
+          };
         }
+
+        // Verify refresh token and check if it matches the user
+        try {
+          const payload = await verifyRefreshToken(refreshToken);
+          if (!payload || payload.userId !== String(tokenInDb.user.id)) {
+            throw new Error("Invalid token payload");
+          }
+
+          // Create new tokens with extended expiry
+          const [newAccessToken, newRefreshToken] = await Promise.all([
+            createAccessToken({
+              userId: String(tokenInDb.user.id),
+              email: tokenInDb.user.email,
+              role: tokenInDb.user.role,
+            }),
+            createRefreshToken({
+              userId: String(tokenInDb.user.id),
+              email: tokenInDb.user.email,
+              role: tokenInDb.user.role,
+            }),
+          ]);
+
+          // Create hash of new refresh token
+          const newTokenHash = crypto
+            .createHash("sha256")
+            .update(newRefreshToken)
+            .digest("hex");
+
+          // Delete old refresh token and create new one atomically
+          await tx.refreshToken.delete({
+            where: { id: tokenInDb.id },
+          });
+
+          await tx.refreshToken.create({
+            data: {
+              token: newRefreshToken,
+              tokenHash: newTokenHash,
+              userId: tokenInDb.user.id,
+              expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRY * 1000),
+            },
+          });
+
+          // Clean up expired tokens in background after transaction
+          tx.refreshToken
+            .deleteMany({
+              where: {
+                expiresAt: {
+                  lt: new Date(),
+                },
+              },
+            })
+            .catch((err) =>
+              console.error(
+                err instanceof Error
+                  ? err.message
+                  : "Error cleaning up expired tokens:",
+                err
+              )
+            );
+
+          return {
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+            user: {
+              id: tokenInDb.user.id,
+              email: tokenInDb.user.email,
+              role: tokenInDb.user.role,
+              name: tokenInDb.user.name,
+            },
+          };
+        } catch (error) {
+          // If token verification fails, delete the token
+          await tx.refreshToken.delete({
+            where: { id: tokenInDb.id },
+          });
+
+          throw error;
+        }
+      })
+      .catch((err) => {
+        console.log(err instanceof Error ? err.message : err);
+        return {
+          error: "Transaction failed",
+          code: "TRANSACTION_FAILED",
+          status: 500,
+        };
       });
 
-      if (!tokenInDb) {
-        return { error: "Refresh token not found, revoked, or expired", code: "TOKEN_INVALID", status: 401 };
-      }
-
-      // Verify refresh token and check if it matches the user
-      try {
-        const payload = await verifyRefreshToken(refreshToken);
-        if (!payload || payload.userId !== String(tokenInDb.user.id)) {
-          throw new Error("Invalid token payload");
-        }
-
-        // Create new tokens with extended expiry
-        const [newAccessToken, newRefreshToken] = await Promise.all([
-          createAccessToken({
-            userId: String(tokenInDb.user.id),
-            email: tokenInDb.user.email,
-            role: tokenInDb.user.role
-          }),
-          createRefreshToken({
-            userId: String(tokenInDb.user.id),
-            email: tokenInDb.user.email,
-            role: tokenInDb.user.role
-          })
-        ]);
-
-        // Create hash of new refresh token
-        const newTokenHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
-
-        // Delete old refresh token and create new one atomically
-        await tx.refreshToken.delete({
-          where: { id: tokenInDb.id }
-        });
-
-        await tx.refreshToken.create({
-          data: {
-            token: newRefreshToken,
-            tokenHash: newTokenHash,
-            userId: tokenInDb.user.id,
-            expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRY * 1000)
-          }
-        });
-
-        // Clean up expired tokens in background after transaction
-        tx.refreshToken.deleteMany({
-          where: {
-            expiresAt: {
-              lt: new Date()
-            }
-          }
-        }).catch(err => console.error('Error cleaning up expired tokens:', err));
-
-        return {
-          accessToken: newAccessToken,
-          refreshToken: newRefreshToken,
-          user: {
-            id: tokenInDb.user.id,
-            email: tokenInDb.user.email,
-            role: tokenInDb.user.role,
-            name: tokenInDb.user.name
-          }
-        };
-      } catch (error) {
-        // If token verification fails, delete the token
-        await tx.refreshToken.delete({
-          where: { id: tokenInDb.id }
-        });
-        
-        throw error;
-      }
-    });
-
-    if ('error' in result) {
+    if (!result || "error" in result) {
       const response = NextResponse.json(
         { error: result.error, code: result.code },
         { status: result.status }
@@ -142,24 +178,28 @@ export async function POST() {
     // Set new cookies with enhanced security options
     const response = NextResponse.json({
       message: "Tokens refreshed successfully",
-      user: result.user
+      user: result.user,
     });
 
     response.cookies.set("accessToken", result.accessToken, {
-      ...getCookieOptions(ACCESS_TOKEN_EXPIRY)
+      ...getCookieOptions(ACCESS_TOKEN_EXPIRY),
     });
 
     response.cookies.set("refreshToken", result.refreshToken, {
-      ...getCookieOptions(REFRESH_TOKEN_EXPIRY)
+      ...getCookieOptions(REFRESH_TOKEN_EXPIRY),
     });
 
     return response;
-
   } catch (error) {
-    console.error("Token refresh error:", error instanceof Error ? {
-      message: error.message,
-      stack: error.stack
-    } : error);
+    console.error(
+      "Token refresh error:",
+      error instanceof Error
+        ? {
+            message: error.message,
+            stack: error.stack,
+          }
+        : error
+    );
 
     // Clear cookies on any error
     const response = NextResponse.json(

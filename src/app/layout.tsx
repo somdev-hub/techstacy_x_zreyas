@@ -25,7 +25,22 @@ export const metadata: Metadata = {
   description:
     "The annual tech fest of Silicon Institute of Technology, Sambalpur",
   manifest: "/manifest.json",
-  themeColor: "#171717",
+  // themeColor: "#171717",
+  openGraph: {
+    title: "Techstacy X Zreyas",
+    description:
+      "The annual tech fest of Silicon Institute of Technology, Sambalpur",
+    type: "website",
+    url: "https://techstacy.zreyas.com",
+    images: [
+      {
+        url: "https://beautiful-gold-bison.myfilebase.com/ipfs/QmWwCG2jQeG9n4UNyJ2X9B74aGuSSejusMzzuKqcMNW9Wt",
+        width: 500,
+        height: 300,
+        alt: "Techstacy X Zreyas",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({

@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { UserProvider } from "@/context/UserContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { Analytics } from "@vercel/analytics/react";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -67,6 +68,24 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Techstacy X Zreyas" />
         <meta name="mobile-web-app-capable" content="yes" />
+
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-JY0NFP6404"
+          strategy="afterInteractive"
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-JY0NFP6404');
+`,
+          }}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased has-modal:overflow-hidden has-modal:fixed has-modal:w-full has-modal:h-full`}

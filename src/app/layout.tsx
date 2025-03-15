@@ -36,11 +36,32 @@ export const metadata: Metadata = {
     url: "https://techstacy-x-zreyas.sitwestevents.live",
     images: [
       {
-        url: "https://beautiful-gold-bison.myfilebase.com/ipfs/QmY6ZTZD3aFKSrQpcELKKvAaKEcT6ur78AHDNHnbvASggi",
+        url: "https://beautiful-gold-bison.myfilebase.com/ipfs/QmWPGCxoQZXPuAwf386kJMsZKMp8A6Gsi8AG9AkQXESsFV",
         width: 1200,
         height: 630,
         alt: "Techstacy X Zreyas",
         type: "image/jpeg",
+      },
+      {
+        url: "https://beautiful-gold-bison.myfilebase.com/ipfs/QmY6ZTZD3aFKSrQpcELKKvAaKEcT6ur78AHDNHnbvASggi",
+        width: 1200,
+        height: 630,
+        alt: "Techstacy X Zreyas",
+        type: "image/png",
+      },
+      {
+        url: "https://beautiful-gold-bison.myfilebase.com/ipfs/Qme5iGCHx93c6kJvi9QYF57y4xXVum4k4FQR46JkwB25GW",
+        width: 600,
+        height: 600,
+        alt: "Techstacy X Zreyas",
+        type: "image/png",
+      },
+      {
+        url: "https://beautiful-gold-bison.myfilebase.com/ipfs/QmWwCG2jQeG9n4UNyJ2X9B74aGuSSejusMzzuKqcMNW9Wt",
+        width: 1200,
+        height: 630,
+        alt: "Techstacy X Zreyas",
+        type: "image/png",
       },
     ],
   },

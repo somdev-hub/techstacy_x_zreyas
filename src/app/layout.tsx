@@ -23,18 +23,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Techstacy X Zreyas",
   description:
-    "The annual tech fest of Silicon Institute of Technology, Sambalpur",
+    "The annual tech and cultural fest of Silicon Institute of Technology, Sambalpur",
   manifest: "/manifest.json",
   // themeColor: "#171717",
   openGraph: {
     title: "Techstacy X Zreyas",
     description:
-      "The annual tech fest of Silicon Institute of Technology, Sambalpur",
+      "The annual tech adn cultural fest of Silicon Institute of Technology, Sambalpur",
     type: "website",
     url: "https://techstacy.zreyas.com",
     images: [
       {
-        url: "https://beautiful-gold-bison.myfilebase.com/ipfs/QmWwCG2jQeG9n4UNyJ2X9B74aGuSSejusMzzuKqcMNW9Wt",
+        url: "https://beautiful-gold-bison.myfilebase.com/ipfs/QmY6ZTZD3aFKSrQpcELKKvAaKEcT6ur78AHDNHnbvASggi",
         width: 500,
         height: 300,
         alt: "Techstacy X Zreyas",

@@ -340,7 +340,7 @@ const Home = () => {
     <div>
       <div className="mt-8 w-full">
         <div className="flex flex-col lg:flex-row gap-8">
-          <div className="bg-neutral-800 rounded-xl shadow-md p-4 max-h-[475px] md:w-[70%] w-full overflow-fix overflow-y-auto">
+          <div className="bg-neutral-800 no-visible-scrollbar rounded-xl shadow-md p-4 max-h-[475px] md:w-[70%] w-full overflow-fix overflow-y-auto">
             <div className="flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-center mb-3">
               <h1 className="text-[1rem] md:text-[1.125rem] font-[700]">
                 Teams by Event
@@ -826,7 +826,7 @@ const Home = () => {
             </form>
           </div>
           <div className="md:w-[70%] w-full">
-            <div className="bg-neutral-800 rounded-xl shadow-md p-4 max-h-[475px] overflow-fix">
+            <div className="bg-neutral-800 rounded-xl shadow-md p-4 max-h-[475px] overflow-fix overflow-y-auto">
               <div className="flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-center mb-3">
                 <h1 className="text-[1rem] md:text-[1.125rem] font-[700]">
                   Participants by event

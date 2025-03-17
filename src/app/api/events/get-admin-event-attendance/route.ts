@@ -1,69 +1,58 @@
+import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { PrismaClient } from "@prisma/client";
 import { verifyAccessToken } from "@/lib/jose-auth";
-// import { NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
 export async function GET() {
   try {
     const cookieStore = await cookies();
-
     const token = cookieStore.get("accessToken")?.value;
-    let userId;
+
     if (!token) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+    let decoded;
     try {
-      const decoded = await verifyAccessToken(token);
-
-      // Verify decoded token has all required fields
+      decoded = await verifyAccessToken(token);
       if (!decoded.userId || !decoded.email || !decoded.role) {
         return NextResponse.json(
           { error: "Invalid token payload" },
           { status: 401 }
         );
-      } else {
-        userId = decoded.userId;
       }
     } catch (error) {
       console.error("Token verification failed:", error);
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    // Get admin user
-    const admin = await prisma.user.findUnique({
-      where: { id: parseInt(userId) },
+    // Get events managed by this admin
+    const eventIds = await prisma.eventHead.findMany({
+      where: {
+        userId: parseInt(decoded.userId),
+      },
       select: {
-        id: true,
+        eventId: true,
       },
     });
-
-    if (!admin) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // Get events where admin is event head
-    const eventHeads = await prisma.eventHead.findMany({
-      where: { userId: admin.id },
-      include: {
-        event: true,
-      },
-    });
-
-    const eventIds = eventHeads.map((eh) => eh.eventId);
 
     // Get attendance records for these events
     const attendance = await prisma.eventAttendance.findMany({
       where: {
         eventId: {
-          in: eventIds,
+          in: eventIds.map((event) => event.eventId),
         },
       },
       include: {
-        event: true,
+        event: {
+          select: {
+            name: true,
+            eventName: true,
+            participationType: true,
+          },
+        },
         user: {
           select: {
             id: true,
@@ -80,8 +69,8 @@ export async function GET() {
       },
     });
 
-    // For each attendance record, get the team details
-    const attendanceWithTeam = await Promise.all(
+    // For each attendance record, get team details if applicable
+    const attendanceWithTeams = await Promise.all(
       attendance.map(async (record) => {
         const participant = await prisma.eventParticipant.findFirst({
           where: {
@@ -97,6 +86,7 @@ export async function GET() {
                     name: true,
                     year: true,
                     imageUrl: true,
+                    sic: true,
                   },
                 },
               },
@@ -104,31 +94,42 @@ export async function GET() {
           },
         });
 
-        return {
-          ...record,
-          teamDetails: participant ? {
+        let teamDetails = null;
+        if (participant) {
+          const members = participant.otherParticipants.map((member) => ({
+            id: member.id.toString(),
+            name: member.user.name,
+            year: member.user.year,
+            imageUrl: member.user.imageUrl,
+            sic: member.user.sic,
+            isConfirmed: member.isConfirmed
+          }));
+
+          teamDetails = {
             leader: {
               id: participant.id.toString(),
               name: record.user.name,
               year: record.user.year,
               imageUrl: record.user.imageUrl,
+              sic: record.user.sic,
+              isConfirmed: true // Leader is always confirmed
             },
-            members: participant.otherParticipants.map((member) => ({
-              id: member.id.toString(),
-              name: member.user.name,
-              year: member.user.year,
-              imageUrl: member.user.imageUrl,
-            })),
-          } : null,
+            members,
+          };
+        }
+
+        return {
+          ...record,
+          teamDetails,
         };
       })
     );
 
-    return NextResponse.json(attendanceWithTeam);
+    return NextResponse.json(attendanceWithTeams);
   } catch (error) {
-    console.error("Error fetching event attendance:", error);
+    console.error("Failed to fetch attendance:", error);
     return NextResponse.json(
-      { error: "Failed to fetch event attendance" },
+      { error: "Failed to fetch attendance" },
       { status: 500 }
     );
   }

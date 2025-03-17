@@ -10,6 +10,7 @@ type TeamMember = {
   imageUrl: string | null;
   sic?: string; // Make SIC optional to handle existing implementations
   eventName?: string; // Event name field
+  isConfirmed?: boolean; // Add confirmation status
 };
 
 type TeamDetailsModalProps = {
@@ -28,7 +29,7 @@ export function TeamDetailsModal({ isOpen, onClose, teamLeader, teamMembers }: T
         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-50 w-full max-w-2xl mx-4 bg-neutral-800 rounded-xl shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+      <div className="relative z-50 w-full max-w-2xl mx-4 bg-neutral-800 rounded-xl shadow-lg p-6 max-h-[90vh] overflow-y-auto no-visible-scrollbar">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-xl font-bold">Team Details</h2>
@@ -67,7 +68,12 @@ export function TeamDetailsModal({ isOpen, onClose, teamLeader, teamMembers }: T
                 </div>
               )}
               <div className="flex-1">
-                <p className="font-medium text-lg">{teamLeader.name}</p>
+                <div className="flex justify-between">
+                  <p className="font-medium text-lg">{teamLeader.name}</p>
+                  <div className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded">
+                    Confirmed
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-2 mt-1">
                   <p className="text-sm text-neutral-300">
                     <span className="text-neutral-400">Year:</span> {teamLeader.year.replace("_", " ")}
@@ -110,7 +116,16 @@ export function TeamDetailsModal({ isOpen, onClose, teamLeader, teamMembers }: T
                       </div>
                     )}
                     <div className="flex-1">
-                      <p className="font-medium">{member.name}</p>
+                      <div className="flex justify-between">
+                        <p className="font-medium">{member.name}</p>
+                        <div className={`px-2 py-1 text-xs rounded ${
+                          member.isConfirmed 
+                            ? "bg-green-500/20 text-green-400" 
+                            : "bg-yellow-500/20 text-yellow-400"
+                        }`}>
+                          {member.isConfirmed ? "Confirmed" : "Pending"}
+                        </div>
+                      </div>
                       <div className="grid grid-cols-2 gap-2 mt-1">
                         <p className="text-sm text-neutral-300">
                           <span className="text-neutral-400">Year:</span> {member.year.replace("_", " ")}

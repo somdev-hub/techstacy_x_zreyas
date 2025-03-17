@@ -48,6 +48,7 @@ export async function GET() {
         id: true,
         eventId: true,
         userId: true,
+        mainParticipantId: true,
         user: {
           select: {
             id: true,
@@ -66,20 +67,20 @@ export async function GET() {
             name: true,
             eventName: true,
             eventType: true,
+            participationType: true,
             imageUrl: true,
-            eventResults: {
-              select: {
-                userId: true,
-                position: true
-              }
-            }
           },
         },
-        mainParticipantId: true,
         otherParticipants: {
+          where: {
+            mainParticipantId: {
+              not: null,
+            },
+          },
           select: {
             id: true,
             userId: true,
+            isConfirmed: true,
             user: {
               select: {
                 id: true,

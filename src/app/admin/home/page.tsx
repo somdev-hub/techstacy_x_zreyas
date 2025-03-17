@@ -18,6 +18,8 @@ type TeamMember = {
   name: string;
   year: Year;
   imageUrl: string | null;
+  sic?: string; // Make SIC optional to handle existing implementations
+  isConfirmed?: boolean; // Add confirmation status
 };
 
 type EventParticipant = {
@@ -55,6 +57,7 @@ type EventParticipant = {
       sic: string;
       phone: string;
     };
+    isConfirmed: boolean;
   }[];
 };
 
@@ -199,6 +202,8 @@ const Home = () => {
       name: member.user.name,
       year: member.user.year,
       imageUrl: member.user.imageUrl,
+      sic: member.user.sic, // Add SIC to team members
+      isConfirmed: member.isConfirmed || false // Add confirmation status
     }));
   };
 
@@ -211,6 +216,8 @@ const Home = () => {
         name: participant.user.name,
         year: participant.user.year,
         imageUrl: participant.user.imageUrl,
+        sic: participant.user.sic, // Add SIC to leader
+        isConfirmed: true // Team leader is always confirmed
       },
       members: teamMembers,
     });
@@ -350,7 +357,7 @@ const Home = () => {
     <div className="w-full">
       <div className="mt-8 w-full flex flex-col gap-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          <div className="bg-neutral-800 rounded-xl shadow-md p-3 md:p-4 md:w-[70%] w-full overflow-fix">
+          <div className="bg-neutral-800 rounded-xl shadow-md p-3 md:p-4 md:w-[70%] max-h-[475px] overflow-y-auto no-visible-scrollbar w-full overflow-fix">
             <div className="flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-center mb-3">
               <h1 className="text-[1rem] md:text-[1.125rem] font-[700]">
                 Event Participation

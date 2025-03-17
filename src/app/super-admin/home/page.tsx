@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { TeamDetailsModal } from "@/components/TeamDetailsModal";
+import { EventParticipantsModal, Team } from "@/components/EventParticipantsModal";
 import {
   Table,
   TableBody,
@@ -96,6 +97,7 @@ type EventParticipant = {
       sic: string;
       phone: string;
     };
+    isConfirmed: boolean; // Add confirmation status
   }[];
 };
 
@@ -106,6 +108,7 @@ type TeamMember = {
   sic: string; // Added SIC to team members
   imageUrl: string | null;
   eventName?: Events; // Added optional eventName property
+  isConfirmed: boolean; // Add confirmation status
 };
 
 const Home = () => {
@@ -136,6 +139,12 @@ const Home = () => {
   const [selectedTeam, setSelectedTeam] = useState<{
     leader: TeamMember;
     members: TeamMember[];
+  } | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<{
+    event: Events;
+    eventType: EventType;
+    participationType: ParticipationType;
+    participants: Team[];
   } | null>(null);
 
   // Fetch data and organize it for both tables
@@ -317,6 +326,7 @@ const Home = () => {
       year: member.user.year,
       imageUrl: member.user.imageUrl,
       sic: member.user.sic, // Add SIC to team members
+      isConfirmed: member.isConfirmed // Add confirmation status
     }));
   };
 
@@ -331,9 +341,35 @@ const Home = () => {
         imageUrl: participant.user.imageUrl,
         sic: participant.user.sic, // Add SIC to leader
         eventName: participant.event.eventName, // Add event name
+        isConfirmed: true // Team leader is always confirmed
       },
       members: teamMembers,
     });
+  };
+
+  const handleViewEventParticipants = async (event: {
+    event: Events;
+    eventType: EventType;
+    participationType: ParticipationType;
+  }) => {
+    try {
+      const response = await fetch(`/api/events/get-event-details?eventName=${event.event}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch event details');
+      }
+      const data = await response.json();
+      
+      // The data is already in the correct format from the API
+      const validTeams = Array.isArray(data) ? data : [];
+      
+      setSelectedEvent({
+        ...event,
+        participants: validTeams
+      });
+    } catch (error) {
+      console.error("Failed to fetch event participants:", error);
+      toast.error("Failed to load event participants");
+    }
   };
 
   return (
@@ -897,7 +933,10 @@ const Home = () => {
                           <TableCell>{event.participationType}</TableCell>
                           <TableCell>{event.totalParticipants}</TableCell>
                           <TableCell>
-                            <button className="bg-blue-600 px-3 py-1 rounded-md">
+                            <button 
+                              className="bg-blue-600 px-3 py-1 rounded-md"
+                              onClick={() => handleViewEventParticipants(event)}
+                            >
                               View
                             </button>
                           </TableCell>
@@ -919,6 +958,15 @@ const Home = () => {
           onClose={() => setSelectedTeam(null)}
           teamLeader={selectedTeam.leader}
           teamMembers={selectedTeam.members}
+        />
+      )}
+
+      {/* Event Participants Modal */}
+      {selectedEvent && (
+        <EventParticipantsModal
+          isOpen={!!selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          event={selectedEvent}
         />
       )}
     </div>

@@ -51,25 +51,13 @@ export async function GET() {
           },
         },
         otherParticipants: {
-          // Get team members registered by this participant
           where: {
             mainParticipantId: {
               not: null,
             },
           },
           include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                imageUrl: true,
-                college: true,
-                year: true,
-                sic: true,
-                phone: true,
-              },
-            },
+            user: true,
           },
         },
       },
@@ -77,12 +65,7 @@ export async function GET() {
 
     return NextResponse.json(participants);
   } catch (error) {
-    console.error(
-      error instanceof Error
-        ? error.message
-        : "Failed to fetch event participants:",
-      error
-    );
+    console.error(error instanceof Error && error.message);
     return NextResponse.json(
       { error: "Failed to fetch event participants" },
       { status: 500 }

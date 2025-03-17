@@ -3,13 +3,37 @@ import { userFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NotificationService } from "@/lib/notification-service";
 import { NotificationType } from "@prisma/client";
+import { cookies } from "next/headers";
+import { verifyAccessToken } from "@/lib/jose-auth";
 
 export async function POST(req: NextRequest) {
   try {
     // Only allow super admin to manage notifications
-    const user = await userFromRequest(req);
-    if (!user || user.role !== "SUPERADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const cookieStore = await cookies();
+
+    const token = cookieStore.get("accessToken")?.value;
+    if (!token) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    try {
+      const decoded = await verifyAccessToken(token);
+
+      // Verify decoded token has all required fields and is super admin
+      if (
+        !decoded.userId ||
+        !decoded.email ||
+        !decoded.role ||
+        decoded.role !== "SUPERADMIN"
+      ) {
+        return NextResponse.json(
+          { error: "Unauthorized access" },
+          { status: 401 }
+        );
+      }
+    } catch (error) {
+      console.error("Token verification failed:", error);
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -17,7 +41,8 @@ export async function POST(req: NextRequest) {
 
     switch (action) {
       case "bulkSend": {
-        const { title, message, userType, notificationType, year, eventName } = body;
+        const { title, message, userType, notificationType, year, eventName } =
+          body;
 
         if (!title || !message || !userType || !notificationType) {
           return NextResponse.json(
@@ -29,8 +54,8 @@ export async function POST(req: NextRequest) {
         // Build user filter with proper type
         const userWhere: any = {};
 
-        // Filter by user type
-        if (userType !== "ALL") {
+        // Filter by user type - only apply role filter for actual roles
+        if (userType !== "ALL" && userType !== "EVENT_PARTICIPANTS") {
           userWhere.role = userType;
         }
 

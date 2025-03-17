@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
             userId: Number(userId),
             isConfirmed: true,
             qrCode,
+            teamLeader: true,
           },
           include: {
             user: {
@@ -155,7 +156,7 @@ export async function POST(req: NextRequest) {
     if (!event.partialRegistration && totalTeamSize < minRequiredParticipants) {
       return NextResponse.json(
         { 
-          error: `This event requires at least ${minRequiredParticipants} participants (including yourself)`
+          error: `This event requires exactly ${minRequiredParticipants} participants (including yourself) and partial registration is not allowed` 
         },
         { status: 400 }
       );
@@ -196,6 +197,7 @@ export async function POST(req: NextRequest) {
           userId: Number(userId),
           isConfirmed: true,
           qrCode,
+          teamLeader: true,
         },
         include: {
           user: {
@@ -225,6 +227,7 @@ export async function POST(req: NextRequest) {
                     isConfirmed: false,
                     mainParticipantId: mainRegistration.id,
                     qrCode: memberQrCode,
+                    teamLeader: false,
                   },
                 });
 

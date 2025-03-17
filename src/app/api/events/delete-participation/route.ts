@@ -29,10 +29,62 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    // Get all team members for this event
-    const teamMembers = await prisma.eventParticipant.findMany({
+    // First, find the user's own participation
+    const userParticipation = await prisma.eventParticipant.findFirst({
       where: {
         eventId: Number(eventId),
+        userId: Number(decoded.userId),
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            fcmToken: true,
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!userParticipation) {
+      return NextResponse.json(
+        { error: "You are not registered for this event" },
+        { status: 404 }
+      );
+    }
+
+    // Determine if this user is a team leader or a team member
+    // A team leader either has mainParticipantId === null or is marked as teamLeader === true
+    const isTeamLeader = !userParticipation.mainParticipantId || userParticipation.teamLeader;
+    
+    if (!isTeamLeader) {
+      return NextResponse.json(
+        { error: "Only team leaders can cancel team participation" },
+        { status: 403 }
+      );
+    }
+
+    // Get all team members (either led by this user or where this user is a member)
+    let teamMembers = await prisma.eventParticipant.findMany({
+      where: {
+        eventId: Number(eventId),
+        OR: [
+          // If this is a team leader with members
+          { 
+            mainParticipantId: userParticipation.id 
+          },
+          // Include the leader themselves
+          { 
+            id: userParticipation.id 
+          }
+        ]
       },
       include: {
         user: {
@@ -53,32 +105,16 @@ export async function POST(req: NextRequest) {
     });
 
     if (!teamMembers || teamMembers.length === 0) {
-      return NextResponse.json(
-        { error: "No participants found" },
-        { status: 404 }
-      );
+      // If somehow no team members are found, still allow deletion of the user's own participation
+      teamMembers = [userParticipation];
     }
 
-    // Get the team lead
-    const teamLead = teamMembers.find(member => member.mainParticipantId === null);
-    if (!teamLead) {
-      return NextResponse.json(
-        { error: "Team leader not found" },
-        { status: 404 }
-      );
-    }
-
-    // Check if the requesting user is the team leader
-    if (teamLead.user.id !== Number(decoded.userId)) {
-      return NextResponse.json(
-        { error: "Only team leaders can cancel team participation" },
-        { status: 403 }
-      );
-    }
+    // The team lead is the requesting user
+    const teamLead = userParticipation;
 
     // Send notifications to all team members first (to ensure they get the notification before deletion)
     const notificationPromises = teamMembers.map(async (member) => {
-      if (member.user.fcmToken) {
+      if (member.user.fcmToken && member.user.id !== teamLead.user.id) {
         try {
           await sendNotification(
             member.user.fcmToken,
@@ -134,16 +170,27 @@ export async function POST(req: NextRequest) {
     });
 
     // Now delete team participations
-    await prisma.eventParticipant.deleteMany({
-      where: {
-        OR: [
-          // Delete the team leader's record
-          { id: teamLead.id },
-          // Delete all team members' records
-          { mainParticipantId: teamLead.id }
-        ]
-      },
-    });
+    if (isTeamLeader && userParticipation.mainParticipantId === null) {
+      // If this is a main team leader (not a member of another team)
+      await prisma.eventParticipant.deleteMany({
+        where: {
+          OR: [
+            // Delete the team leader's record
+            { id: userParticipation.id },
+            // Delete all team members' records
+            { mainParticipantId: userParticipation.id }
+          ]
+        },
+      });
+    } else {
+      // If this is somehow a team leader who is also a member of another team
+      // or another special case, just delete their own record
+      await prisma.eventParticipant.delete({
+        where: {
+          id: userParticipation.id,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

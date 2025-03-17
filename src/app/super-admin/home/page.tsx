@@ -862,7 +862,7 @@ const Home = () => {
             </form>
           </div>
           <div className="md:w-[70%] w-full">
-            <div className="bg-neutral-800 rounded-xl shadow-md p-4 max-h-[475px] overflow-fix overflow-y-auto no-visible-scrollbar">
+            <div className="bg-neutral-800 rounded-xl shadow-md p-4 max-h-[700px] overflow-fix overflow-y-auto no-visible-scrollbar">
               <div className="flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-center mb-3">
                 <h1 className="text-[1rem] md:text-[1.125rem] font-[700]">
                   Participants by event

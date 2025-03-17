@@ -57,11 +57,11 @@ export function EventParticipantsModal({
         className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-50 w-full max-w-4xl mx-4 bg-neutral-800 rounded-xl shadow-lg p-6 max-h-[90vh] overflow-y-auto no-visible-scrollbar">
+      <div className="relative z-50 w-full max-w-4xl mx-4 bg-neutral-800 rounded-xl shadow-lg p-4 md:p-6 max-h-[90vh] overflow-y-auto no-visible-scrollbar">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-xl font-bold">Event Participants</h2>
-            <div className="flex items-center gap-4 mt-1">
+            <div className="flex flex-wrap items-center gap-4 mt-1">
               <p className="text-sm text-neutral-400">
                 {event.event} - {event.eventType} ({event.participationType})
               </p>
@@ -88,7 +88,7 @@ export function EventParticipantsModal({
           </button>
         </div>
 
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between mb-6">
           <div className="flex gap-4">
             <select
               value={selectedYear}
@@ -103,7 +103,7 @@ export function EventParticipantsModal({
               ))}
             </select>
           </div>
-          <div className="text-sm text-neutral-400">
+          <div className="text-sm text-neutral-400 mt-4 md:mt-0">
             Showing {filteredTeams.length} of {totalTeams} teams
           </div>
         </div>
@@ -124,7 +124,7 @@ export function EventParticipantsModal({
                       </span>
                     </div>
                     <div className="flex-1">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between flex-wrap gap-2 md:gap-0">
                         <p className="font-medium">{team.teamLeader.name}</p>
                         <div className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded">
                           Confirmed
@@ -167,10 +167,10 @@ export function EventParticipantsModal({
                             </span>
                           </div>
                           <div className="flex-1">
-                            <div className="flex justify-between">
+                            <div className="flex flex-wrap gap-2 md:gap-0 justify-between">
                               <p className="font-medium">{member.name}</p>
                               <div
-                                className={`px-2 py-1 text-xs rounded ${
+                                className={`px-2 py-1 w-fit text-xs rounded ${
                                   member.isConfirmed
                                     ? "bg-green-500/20 text-green-400"
                                     : "bg-yellow-500/20 text-yellow-400"

@@ -88,7 +88,7 @@ export default function RootLayout({
         />
 
         <Script
-          id="clarity"
+          id="microsoft-clarity"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `

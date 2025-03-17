@@ -112,44 +112,118 @@ export async function POST(req: NextRequest) {
       }
     } else {
       try {
-        // If rejected, first check if the participation record exists
-        const participation = await prisma.eventParticipant.findFirst({
+        // First check the event's partialRegistration setting
+        const event = await prisma.event.findUnique({
           where: {
-            id: metadata.participantId,
+            id: Number(metadata.eventId),
+          },
+          select: {
+            id: true,
+            name: true,
+            partialRegistration: true,
           },
         });
 
-        if (participation) {
-          // Delete the participation record only if it exists
-          await prisma.eventParticipant.delete({
-            where: {
-              id: metadata.participantId,
-            },
-          });
+        if (!event) {
+          return NextResponse.json({ error: "Event not found" }, { status: 404 });
         }
 
-        // Get the team lead's user record
-        const teamLead = await prisma.eventParticipant.findUnique({
+        // Get all team members including the team lead
+        const teamMembers = await prisma.eventParticipant.findMany({
           where: {
-            id: metadata.mainParticipantId,
+            OR: [
+              { id: Number(metadata.mainParticipantId) },
+              { mainParticipantId: Number(metadata.mainParticipantId) },
+            ],
           },
           include: {
             user: true,
-            event: true,
           },
         });
 
-        if (teamLead) {
-          // Create a notification for the team lead
+        const mainParticipant = teamMembers.find(
+          (member) => member.id === Number(metadata.mainParticipantId)
+        );
+
+        if (!event.partialRegistration) {
+          // If partial registration is not allowed, delete all team members' registrations
+          await prisma.$transaction([
+            // Delete all team members' registrations
+            prisma.eventParticipant.deleteMany({
+              where: {
+                OR: [
+                  { id: Number(metadata.mainParticipantId) },
+                  { mainParticipantId: Number(metadata.mainParticipantId) },
+                ],
+              },
+            }),
+            // Decrement event participation count for all team members
+            ...teamMembers.map((member) =>
+              prisma.user.update({
+                where: { id: member.user.id },
+                data: {
+                  eventParticipation: {
+                    decrement: 1,
+                  },
+                },
+              })
+            ),
+          ]);
+
+          // Notify all team members about the cancellation
+          if (mainParticipant) {
+            await Promise.all(
+              teamMembers
+                .filter((member) => member.id !== Number(metadata.participantId)) // Exclude the declining member
+                .map((member) =>
+                  NotificationService.createNotification({
+                    userId: member.user.id,
+                    title: "Team Registration Cancelled",
+                    message: `Team registration for ${event.name} has been cancelled as ${user.name} declined the invite and partial registration is not allowed.`,
+                    type: NotificationType.EVENT_CANCELLED,
+                    metadata: {
+                      eventId: event.id.toString(),
+                      reason: "TEAM_MEMBER_DECLINED",
+                    },
+                  })
+                )
+            );
+          }
+        } else {
+          // If partial registration is allowed, only delete the declining member's registration
+          await prisma.$transaction([
+            prisma.eventParticipant.delete({
+              where: {
+                id: Number(metadata.participantId),
+              },
+            }),
+            prisma.user.update({
+              where: { id: user.id },
+              data: {
+                eventParticipation: {
+                  decrement: 1,
+                },
+              },
+            }),
+          ]);
+        }
+
+        // Notify team lead about the decline
+        if (mainParticipant) {
           await NotificationService.createNotification({
-            userId: teamLead.user.id,
+            userId: mainParticipant.user.id,
             title: "Team Invite Declined",
-            message: `${user.name} has declined your invite to join ${teamLead.event.name}`,
-            type: NotificationType.GENERAL,
+            message: `${user.name} has declined your invite to join ${event.name}${
+              !event.partialRegistration
+                ? ". As partial registration is not allowed, the entire team registration has been cancelled."
+                : ""
+            }`,
+            type: NotificationType.INVITE_REJECTED,
             metadata: {
               type: "TEAM_INVITE_RESPONSE",
-              eventId: metadata.eventId.toString(),
+              eventId: event.id.toString(),
               response: "declined",
+              teamCancelled: (!event.partialRegistration).toString(),
             },
           });
         }
@@ -170,7 +244,12 @@ export async function POST(req: NextRequest) {
       message: accept ? "Team invite accepted" : "Team invite rejected",
     });
   } catch (error) {
-    console.error("Error processing team invite response:", error);
+    console.error(
+      error instanceof Error
+        ? error.message
+        : "Error processing team invite response:",
+      error
+    );
     console.log(error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       { error: "Failed to process team invite response" },

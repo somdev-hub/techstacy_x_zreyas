@@ -1,10 +1,5 @@
 import React from "react";
 import {
-  Facebook,
-  Twitter,
-  Instagram,
-  Linkedin,
-  Mail,
   Phone,
   MapPin,
 } from "lucide-react";
@@ -22,10 +17,10 @@ const Footer = () => {
               <span className="font-samarkan text-3xl"> Zreyas</span>
             </h3>
             <p className="text-gray-400 mb-4">
-              Join us for an incredible tech festival experience that brings
-              together innovation and creativity.
+              Join us for an incredible tech and cultural festival experience
+              that brings together innovation, creativity and fun.
             </p>
-            <div className="flex space-x-4">
+            {/* <div className="flex space-x-4">
               <a href="#" className="hover:text-white transition-colors">
                 <Facebook size={20} />
               </a>
@@ -38,7 +33,7 @@ const Footer = () => {
               <a href="#" className="hover:text-white transition-colors">
                 <Linkedin size={20} />
               </a>
-            </div>
+            </div> */}
           </div>
 
           {/* Quick Links */}
@@ -59,7 +54,7 @@ const Footer = () => {
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
                 <Phone size={18} />
-                <span>Satyabrat Panigrahi:  +917853998437</span>
+                <span>Satyabrat Panigrahi: +917853998437</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone size={18} />

@@ -163,7 +163,7 @@ const Home = () => {
     <div>
       <div className="mt-8 w-full">
         <div className="flex flex-col lg:flex-row gap-8">
-          <div className="bg-neutral-800 rounded-xl shadow-md p-4 max-h-[475px] w-[65%]">
+          <div className="bg-neutral-800 rounded-xl shadow-md p-4 max-h-[475px] md:w-[65%]">
             <h1 className="text-[1.125rem] font-[700]">Technical Events</h1>
             <div className="overflow-y-auto no-visible-scrollbar pr-2 max-h-[420px] scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-neutral-800">
               {isLoading ? (
@@ -178,7 +178,7 @@ const Home = () => {
               )}
             </div>
           </div>
-          <div className="w-[35%]">
+          <div className="md:w-[35%]">
             <TshirtCard info={tshirtCard} />
           </div>
         </div>

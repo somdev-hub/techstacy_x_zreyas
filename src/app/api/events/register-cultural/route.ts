@@ -88,60 +88,54 @@ export async function POST(req: NextRequest) {
     }
 
     // For team events
-    const participantCount = otherParticipants
-      ? otherParticipants.length + 1
-      : 1;
+    // Get maximum allowed participants based on participation type
+    let maxAllowedParticipants: number | null = 1; // Default to 1 (solo)
+    let minRequiredParticipants = 1; // Default to 1 (solo)
 
-    // Skip validation if partialRegistration is enabled
-    if (!event.partialRegistration) {
-      // Validate participant count based on participation type
-      switch (event.participationType) {
-        case "DUO":
-          if (participantCount !== 2) {
-            return NextResponse.json(
-              { error: "DUO events require exactly 2 participants" },
-              { status: 400 }
-            );
-          }
-          break;
-        case "QUAD":
-          if (participantCount !== 4) {
-            return NextResponse.json(
-              { error: "QUAD events require exactly 4 participants" },
-              { status: 400 }
-            );
-          }
-          break;
-        case "QUINTET":
-          if (participantCount !== 5) {
-            return NextResponse.json(
-              { error: "QUINTET events require exactly 5 participants" },
-              { status: 400 }
-            );
-          }
-          break;
-        case "GROUP":
-          if (participantCount < 2) {
-            return NextResponse.json(
-              { error: "GROUP events require at least 2 participants" },
-              { status: 400 }
-            );
-          }
-          break;
-      }
-    } else {
-      // When partialRegistration is enabled, still enforce minimum requirements
-      if (
-        ["DUO", "TRIO", "QUAD", "QUINTET", "GROUP"].includes(
-          event.participationType
-        ) &&
-        participantCount < 1
-      ) {
-        return NextResponse.json(
-          { error: "At least one participant is required" },
-          { status: 400 }
-        );
-      }
+    switch (event.participationType) {
+      case "DUO":
+        maxAllowedParticipants = 2; // Main participant + 1 other
+        minRequiredParticipants = 2;
+        break;
+      case "TRIO":
+        maxAllowedParticipants = 3; // Main participant + 2 others
+        minRequiredParticipants = 3;
+        break;
+      case "QUAD":
+        maxAllowedParticipants = 4; // Main participant + 3 others
+        minRequiredParticipants = 4;
+        break;
+      case "QUINTET":
+        maxAllowedParticipants = 5; // Main participant + 4 others
+        minRequiredParticipants = 5;
+        break;
+      case "GROUP":
+        maxAllowedParticipants = null; // No maximum limit for GROUP events
+        minRequiredParticipants = 2; // At least 2 total (main + 1 other)
+        break;
+    }
+
+    // Calculate total team size (including main participant)
+    const totalTeamSize = 1 + (otherParticipants?.length || 0);
+
+    // Always check maximum limit regardless of partialRegistration (except for GROUP)
+    if (maxAllowedParticipants !== null && totalTeamSize > maxAllowedParticipants) {
+      return NextResponse.json(
+        { 
+          error: `Team size (${totalTeamSize}) exceeds the maximum allowed (${maxAllowedParticipants}) for this event type` 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check minimum limit only if partialRegistration is not enabled
+    if (!event.partialRegistration && totalTeamSize < minRequiredParticipants) {
+      return NextResponse.json(
+        { 
+          error: `This event requires at least ${minRequiredParticipants} participants (including yourself)`
+        },
+        { status: 400 }
+      );
     }
 
     // Create main participant registration first
@@ -166,37 +160,38 @@ export async function POST(req: NextRequest) {
     });
 
     // Create registrations for other team members
-    const otherRegistrations = await Promise.all(
-      otherParticipants.map(async (participant: { userId: string }) => {
-        // Create event participant record
-        const registration = await prisma.eventParticipant.create({
-          data: {
-            eventId: Number(eventId),
-            userId: Number(participant.userId),
-            isConfirmed: false,
-            mainParticipantId: mainRegistration.id,
-          },
-        });
-
-        // Create notification record
-        await prisma.notification.create({
-          data: {
-            userId: Number(participant.userId),
-            title: "Cultural Team Invite",
-            message: `${mainRegistration.user.name} has added you to their team for ${mainRegistration.event.name}`,
-            type: "TEAM_INVITE",
-            metadata: {
-              participantId: registration.id,
-              eventId: eventId,
+    const otherRegistrations = otherParticipants && otherParticipants.length > 0 ? 
+      await Promise.all(
+        otherParticipants.map(async (participant: { userId: string }) => {
+          // Create event participant record
+          const registration = await prisma.eventParticipant.create({
+            data: {
+              eventId: Number(eventId),
+              userId: Number(participant.userId),
+              isConfirmed: false,
               mainParticipantId: mainRegistration.id,
-              mainParticipantName: mainRegistration.user.name,
             },
-          },
-        });
+          });
 
-        return registration;
-      })
-    );
+          // Create notification record
+          await prisma.notification.create({
+            data: {
+              userId: Number(participant.userId),
+              title: "Cultural Team Invite",
+              message: `${mainRegistration.user.name} has added you to their team for ${mainRegistration.event.name}`,
+              type: "TEAM_INVITE",
+              metadata: {
+                participantId: registration.id,
+                eventId: eventId,
+                mainParticipantId: mainRegistration.id,
+                mainParticipantName: mainRegistration.user.name,
+              },
+            },
+          });
+
+          return registration;
+        })
+      ) : [];
 
     // Update event participation count for all users
     await prisma.$transaction([
@@ -208,16 +203,17 @@ export async function POST(req: NextRequest) {
           },
         },
       }),
-      ...otherParticipants.map((participant: { userId: string }) =>
-        prisma.user.update({
-          where: { id: Number(participant.userId) },
-          data: {
-            eventParticipation: {
-              increment: 1,
+      ...(otherParticipants && otherParticipants.length > 0 ? 
+        otherParticipants.map((participant: { userId: string }) =>
+          prisma.user.update({
+            where: { id: Number(participant.userId) },
+            data: {
+              eventParticipation: {
+                increment: 1,
+              },
             },
-          },
-        })
-      ),
+          })
+        ) : []),
     ]);
 
     return NextResponse.json({

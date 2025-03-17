@@ -111,59 +111,54 @@ export async function POST(req: NextRequest) {
     // Validate participants
     const participantCount = otherParticipants?.length || 0;
 
-    // Enforce participation type constraints unless partial registration is enabled
-    if (!event.partialRegistration) {
-      switch (event.participationType) {
-        case "DUO":
-          if (participantCount !== 1) {
-            return NextResponse.json(
-              { error: "DUO events require exactly 1 additional participant" },
-              { status: 400 }
-            );
-          }
-          break;
-        case "TRIO":
-          if (participantCount !== 2) {
-            return NextResponse.json(
-              {
-                error: "TRIO events require exactly 2 additional participants",
-              },
-              { status: 400 }
-            );
-          }
-          break;
-        case "QUAD":
-          if (participantCount !== 3) {
-            return NextResponse.json(
-              {
-                error: "QUAD events require exactly 3 additional participants",
-              },
-              { status: 400 }
-            );
-          }
-          break;
-        case "QUINTET":
-          if (participantCount !== 4) {
-            return NextResponse.json(
-              {
-                error:
-                  "QUINTET events require exactly 4 additional participants",
-              },
-              { status: 400 }
-            );
-          }
-          break;
-        case "GROUP":
-          if (participantCount < 1) {
-            return NextResponse.json(
-              {
-                error: "GROUP events require at least 1 additional participant",
-              },
-              { status: 400 }
-            );
-          }
-          break;
-      }
+    // Get maximum allowed participants based on participation type
+    let maxAllowedParticipants: number | null = 1; // Default to 1 (solo)
+    let minRequiredParticipants = 1; // Default to 1 (solo)
+
+    switch (event.participationType) {
+      case "DUO":
+        maxAllowedParticipants = 2; // Main participant + 1 other
+        minRequiredParticipants = 2;
+        break;
+      case "TRIO":
+        maxAllowedParticipants = 3; // Main participant + 2 others
+        minRequiredParticipants = 3;
+        break;
+      case "QUAD":
+        maxAllowedParticipants = 4; // Main participant + 3 others
+        minRequiredParticipants = 4;
+        break;
+      case "QUINTET":
+        maxAllowedParticipants = 5; // Main participant + 4 others
+        minRequiredParticipants = 5;
+        break;
+      case "GROUP":
+        maxAllowedParticipants = null; // No maximum limit for GROUP events
+        minRequiredParticipants = 2; // At least 2 total (main + 1 other)
+        break;
+    }
+
+    // Calculate total team size (including main participant)
+    const totalTeamSize = 1 + participantCount;
+
+    // Always check maximum limit regardless of partialRegistration (except for GROUP)
+    if (maxAllowedParticipants !== null && totalTeamSize > maxAllowedParticipants) {
+      return NextResponse.json(
+        { 
+          error: `Team size (${totalTeamSize}) exceeds the maximum allowed (${maxAllowedParticipants}) for this event type` 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check minimum limit only if partialRegistration is not enabled
+    if (!event.partialRegistration && totalTeamSize < minRequiredParticipants) {
+      return NextResponse.json(
+        { 
+          error: `This event requires at least ${minRequiredParticipants} participants (including yourself)`
+        },
+        { status: 400 }
+      );
     }
 
     // Check for existing registrations for other participants

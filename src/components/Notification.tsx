@@ -66,7 +66,7 @@ const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
   const handleClearNotifications = async () => {
     try {
       await clearNotifications();
-      toast.success("Notifications cleared successfully");
+      // Removed duplicate toast.success here as it's already present in the NotificationContext
     } catch (error) {
       toast.error("Failed to clear notifications");
     }

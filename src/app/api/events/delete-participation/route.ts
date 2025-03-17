@@ -133,10 +133,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Now delete all participations for this event
+    // Now delete team participations
     await prisma.eventParticipant.deleteMany({
       where: {
-        eventId: Number(eventId),
+        OR: [
+          // Delete the team leader's record
+          { id: teamLead.id },
+          // Delete all team members' records
+          { mainParticipantId: teamLead.id }
+        ]
       },
     });
 

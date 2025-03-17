@@ -55,8 +55,8 @@ export function EventCard({
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
 
-  // Create cards with event data - moved up to fix reference before definition
-  const cards = cardData.map((event) => ({
+  // Create cards with event data - moved outside component to prevent recreation on every render
+  const cards = React.useMemo(() => cardData.map((event) => ({
     description: event.description,
     title: event.name,
     src: event.imageUrl,
@@ -70,7 +70,7 @@ export function EventCard({
     time: event.time,
     partialRegistration: event.partialRegistration,
     event: event, // Store the full event data
-  }));
+  })), [cardData]);
 
   const [eventParticipationData, setEventParticipationData] = useState({
     eventId: "",
@@ -278,60 +278,48 @@ export function EventCard({
     });
   };
 
+  // Combine fetch user and registered events into a single effect
   useEffect(() => {
-    // Reset form when modal closes
+    const fetchUserAndEvents = async () => {
+      try {
+        const userResponse = await fetch("/api/user/me", {
+          credentials: "include",
+        });
+        if (userResponse.ok) {
+          const user = await userResponse.json();
+          setCurrentUser(user);
+
+          // Only fetch registered events if we have a user
+          const eventsResponse = await fetch("/api/events/user-events", {
+            credentials: "include",
+          });
+          if (eventsResponse.ok) {
+            const data = await eventsResponse.json();
+            const registeredIds = data.map((event: any) => event.id);
+            setRegisteredEvents(registeredIds);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserAndEvents();
+  }, []); // Empty dependency array as this should only run once on mount
+
+  // Handle initial active state for modal
+  useEffect(() => {
+    if (isModal && cardData.length === 1) {
+      setActive(cards[0]);
+    }
+  }, [isModal, cardData.length, cards]); // Added proper dependencies
+
+  // Handle form reset when modal closes
+  useEffect(() => {
     if (!active) {
       resetForm();
     }
   }, [active]);
-
-  useEffect(() => {
-    const fetchRegisteredEvents = async () => {
-      try {
-        const response = await fetch("/api/events/user-events", {
-          credentials: "include",
-        });
-        if (response.ok) {
-          const data = await response.json();
-          // Extract event IDs from registered events
-          const registeredIds = data.map((event: any) => event.id);
-          setRegisteredEvents(registeredIds);
-        } else {
-          console.error("Failed to fetch registered events");
-        }
-      } catch (error) {
-        console.error("Error fetching registered events:", error);
-      }
-    };
-
-    fetchRegisteredEvents();
-  }, []);
-
-  // Add useEffect to fetch current user
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const response = await fetch("/api/user/me", {
-          credentials: "include",
-        });
-        if (response.ok) {
-          const user = await response.json();
-          setCurrentUser(user);
-        }
-      } catch (error) {
-        console.error("Error fetching current user:", error);
-      }
-    };
-
-    fetchCurrentUser();
-  }, []);
-
-  useEffect(() => {
-    if (isModal && cardData.length === 1) {
-      const initialCard = cards[0];
-      setActive(initialCard);
-    }
-  }, [isModal, cardData, cards]);
 
   useOutsideClick(ref as React.RefObject<HTMLDivElement>, () => {
     if (onClose) {

@@ -13,7 +13,7 @@ import {
 const prisma = new PrismaClient();
 
 // Constants for token expiry
-const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes
+const ACCESS_TOKEN_EXPIRY = 12 * 60 * 60; // 12 hours
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days
 
 export async function POST(request: Request) {
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
       value: accessToken,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 15 * 60, // 15 minutes
+      maxAge: ACCESS_TOKEN_EXPIRY, // 12 hours
       path: "/",
     });
 
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
       value: String(user.id),
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 15 * 60, // 15 minutes
+      maxAge: ACCESS_TOKEN_EXPIRY, // 12 hours
       path: "/",
     });
 

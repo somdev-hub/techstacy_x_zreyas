@@ -8,7 +8,7 @@ export interface TokenPayload extends jose.JWTPayload {
 }
 
 // Constants
-const ACCESS_TOKEN_TTL = '15m';
+const ACCESS_TOKEN_TTL = '12h';
 const REFRESH_TOKEN_TTL = '7d';
 
 // Use static secrets for development (in production, use environment variables)

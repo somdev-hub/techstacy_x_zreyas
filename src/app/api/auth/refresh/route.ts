@@ -11,7 +11,7 @@ import {
 const prisma = new PrismaClient();
 
 // Constants for token expiry
-const ACCESS_TOKEN_EXPIRY = 15 * 60; // 15 minutes in seconds
+const ACCESS_TOKEN_EXPIRY = 12 * 60 * 60; // 12 hours in seconds
 const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days in seconds
 
 // Common cookie options for security

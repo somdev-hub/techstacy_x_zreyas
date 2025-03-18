@@ -85,6 +85,13 @@ export function EventParticipantsModal({
       return;
     }
 
+    // Validate and convert teamLeaderId
+    const parsedTeamLeaderId = parseInt(teamLeaderId);
+    if (isNaN(parsedTeamLeaderId)) {
+      toast.error("Invalid team leader ID");
+      return;
+    }
+
     try {
       setIsDeleting(true);
       setDeletingTeamId(teamLeaderId);
@@ -96,7 +103,7 @@ export function EventParticipantsModal({
         },
         body: JSON.stringify({ 
           eventId: event.eventId, 
-          teamLeaderId: parseInt(teamLeaderId) 
+          teamLeaderId: parsedTeamLeaderId
         }),
       });
 

@@ -68,45 +68,77 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    let teamMembers;
+    let isOrphanedTeam = false;
+
     if (!teamLeaderParticipation) {
-      return NextResponse.json(
-        { error: "Team leader participation not found for this event" },
-        { status: 404 }
-      );
-    }
-
-    // Get all team members of this team
-    let teamMembers = await prisma.eventParticipant.findMany({
-      where: {
-        eventId: Number(eventId),
-        OR: [
-          // All members who have this user as their mainParticipant
-          { mainParticipantId: teamLeaderParticipation.id },
-          // Include the leader themselves
-          { id: teamLeaderParticipation.id }
-        ]
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            fcmToken: true,
+      // Check for orphaned team members
+      teamMembers = await prisma.eventParticipant.findMany({
+        where: {
+          eventId: Number(eventId),
+          mainParticipantId: null,
+          teamLeader: false,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              fcmToken: true,
+            },
+          },
+          event: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-        event: {
-          select: {
-            id: true,
-            name: true,
+      });
+
+      if (teamMembers.length === 0) {
+        return NextResponse.json(
+          { error: "No team leader participation or orphaned members found for this event" },
+          { status: 404 }
+        );
+      }
+
+      isOrphanedTeam = true;
+    } else {
+      // Get all team members of this team
+      teamMembers = await prisma.eventParticipant.findMany({
+        where: {
+          eventId: Number(eventId),
+          OR: [
+            // All members who have this user as their mainParticipant
+            { mainParticipantId: teamLeaderParticipation.id },
+            // Include the leader themselves
+            { id: teamLeaderParticipation.id }
+          ]
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              fcmToken: true,
+            },
+          },
+          event: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!teamMembers || teamMembers.length === 0) {
-      // If no team members found, but we have the leader, use just the leader
-      teamMembers = [teamLeaderParticipation];
+      if (!teamMembers || teamMembers.length === 0) {
+        // If no team members found, but we have the leader, use just the leader
+        teamMembers = [teamLeaderParticipation];
+      }
     }
 
     const teamMemberIds = teamMembers.map(member => member.id);
@@ -118,12 +150,14 @@ export async function POST(req: NextRequest) {
           // Send push notification
           await sendNotification(
             member.user.fcmToken,
-            "Team Participation Cancelled by Admin",
-            `Your team participation in ${member.event.name} has been cancelled by an administrator`,
+            isOrphanedTeam ? "Orphaned Team Member Removed" : "Team Participation Cancelled by Admin",
+            isOrphanedTeam 
+              ? `Your orphaned participation in ${member.event.name} has been removed by an administrator`
+              : `Your team participation in ${member.event.name} has been cancelled by an administrator`,
             {
               type: "TEAM_PARTICIPATION_CANCELLED",
               eventId: eventId.toString(),
-              adminAction: 'true',
+              adminAction: "true",
               adminName: user.name,
               eventName: member.event.name
             }
@@ -133,8 +167,10 @@ export async function POST(req: NextRequest) {
           await prisma.notification.create({
             data: {
               userId: member.user.id,
-              title: "Team Participation Cancelled by Admin",
-              message: `Your team participation in ${member.event.name} has been cancelled by an administrator`,
+              title: isOrphanedTeam ? "Orphaned Team Member Removed" : "Team Participation Cancelled by Admin",
+              message: isOrphanedTeam 
+                ? `Your orphaned participation in ${member.event.name} has been removed by an administrator`
+                : `Your team participation in ${member.event.name} has been cancelled by an administrator`,
               type: NotificationType.EVENT_CANCELLED,
               metadata: {
                 type: "TEAM_PARTICIPATION_CANCELLED",
@@ -174,15 +210,17 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // First clear mainParticipantId references to avoid foreign key constraints
-      await tx.eventParticipant.updateMany({
-        where: {
-          mainParticipantId: teamLeaderParticipation.id,
-        },
-        data: {
-          mainParticipantId: null,
-        },
-      });
+      if (!isOrphanedTeam && teamLeaderParticipation) {
+        // First clear mainParticipantId references to avoid foreign key constraints
+        await tx.eventParticipant.updateMany({
+          where: {
+            mainParticipantId: teamLeaderParticipation.id,
+          },
+          data: {
+            mainParticipantId: null,
+          },
+        });
+      }
 
       // Now delete all team members including the leader
       await tx.eventParticipant.deleteMany({
@@ -208,7 +246,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ 
       success: true,
-      message: `Team "${teamLeaderParticipation.user.name}'s team" for event "${teamLeaderParticipation.event.name}" has been deleted successfully`,
+      message: isOrphanedTeam 
+        ? `Successfully removed ${teamMembers.length} orphaned team member(s) from event`
+        : teamLeaderParticipation 
+          ? `Team "${teamLeaderParticipation.user.name}'s team" for event "${teamLeaderParticipation.event.name}" has been deleted successfully`
+          : `Team has been deleted successfully`,
       teamMembersCount: teamMembers.length
     });
   } catch (error) {

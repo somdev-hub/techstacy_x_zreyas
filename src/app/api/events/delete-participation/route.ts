@@ -60,10 +60,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if user is a team leader - only team leaders can delete team participation
+    // Check if user is part of a team
+    const isPartOfTeam = userParticipation.mainParticipantId !== null;
     const isTeamLeader = userParticipation.teamLeader;
     
-    if (!isTeamLeader) {
+    // If user is part of a team but not the leader, they can't delete
+    if (isPartOfTeam && !isTeamLeader) {
       return NextResponse.json(
         { error: "Only team leaders can cancel team participation" },
         { status: 403 }

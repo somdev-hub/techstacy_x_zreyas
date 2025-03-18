@@ -2,6 +2,8 @@
 
 import { Year } from "@prisma/client";
 import Image from "next/image";
+import { useState } from "react";
+import { toast } from "sonner";
 
 type TeamMember = {
   id: string;
@@ -18,10 +20,79 @@ type TeamDetailsModalProps = {
   onClose: () => void;
   teamLeader: TeamMember;
   teamMembers: TeamMember[];
+  isSuperAdmin?: boolean; // Add prop to check if the current user is superadmin
+  eventId?: number; // Add eventId prop to know which event to delete
+  onTeamDeleted?: () => void; // Callback to refresh data after deletion
 };
 
-export function TeamDetailsModal({ isOpen, onClose, teamLeader, teamMembers }: TeamDetailsModalProps) {
+export function TeamDetailsModal({ 
+  isOpen, 
+  onClose, 
+  teamLeader, 
+  teamMembers, 
+  isSuperAdmin = false, 
+  eventId,
+  onTeamDeleted 
+}: TeamDetailsModalProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleDeleteTeam = async () => {
+    if (!eventId) {
+      toast.error("Event ID is missing. Cannot delete team.");
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      
+      // Use the superadmin-specific endpoint if the user is a superadmin
+      const endpoint = isSuperAdmin 
+        ? "/api/superadmin/delete-team" 
+        : "/api/events/delete-participation";
+        
+      // Different payload for superadmin endpoint vs participant endpoint
+      const payload = isSuperAdmin 
+        ? { eventId, teamLeaderId: parseInt(teamLeader.id) } 
+        : { eventId };
+      
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete team participation");
+      }
+
+      const result = await response.json();
+      toast.success(result.message || "Team participation deleted successfully");
+      onClose();
+      if (onTeamDeleted) {
+        onTeamDeleted();
+      }
+    } catch (error) {
+      console.error("Error deleting team participation:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete team participation");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const confirmDeletion = () => {
+    const message = isSuperAdmin
+      ? `Are you sure you want to delete ${teamLeader.name}'s team from this event? All team members will be removed. This action cannot be undone.`
+      : `Are you sure you want to delete your team from this event? This action cannot be undone.`;
+      
+    if (confirm(message)) {
+      handleDeleteTeam();
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -145,10 +216,45 @@ export function TeamDetailsModal({ isOpen, onClose, teamLeader, teamMembers }: T
             </div>
           </div>
 
-          <div className="flex justify-end mt-4">
+          <div className="flex justify-between mt-4">
+            {isSuperAdmin && (
+              <button 
+                onClick={confirmDeletion}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete Team"
+                )}
+              </button>
+            )}
             <button 
               onClick={onClose}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors ml-auto"
             >
               Close
             </button>

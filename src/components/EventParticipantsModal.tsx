@@ -1,5 +1,6 @@
 import { Events, EventType, ParticipationType, Year } from "@prisma/client";
 import { useState } from "react";
+import { toast } from "sonner";
 
 type TeamMember = {
   id: string;
@@ -23,17 +24,109 @@ interface EventParticipantsModalProps {
     eventType: EventType;
     participationType: ParticipationType;
     participants: Team[];
+    eventId?: number; // Add eventId for deletion
+    partialRegistration?: boolean; // Add partialRegistration flag
   };
+  isSuperAdmin?: boolean; // Add prop to check if user is superadmin
+  onTeamDeleted?: () => void; // Callback when team is deleted
 }
 
 export function EventParticipantsModal({
   isOpen,
   onClose,
   event,
+  isSuperAdmin = false,
+  onTeamDeleted,
 }: EventParticipantsModalProps) {
   const [selectedYear, setSelectedYear] = useState<Year | "">("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  // Function to get required team size based on participationType
+  const getRequiredTeamSize = (participationType: ParticipationType): number => {
+    switch (participationType) {
+      case "SOLO":
+        return 1;
+      case "DUO":
+        return 2;
+      case "TRIO":
+        return 3;
+      case "QUAD":
+        return 4;
+      case "QUINTET":
+        return 5;
+      case "GROUP":
+        return 6; // Minimum for group
+      default:
+        return 1;
+    }
+  };
+
+  // Calculate team size (including leader)
+  const getTeamSize = (team: Team): number => {
+    return team.members.length + 1; // +1 for the leader
+  };
+
+  // Check if team has incomplete members
+  const hasIncompleteMembers = (team: Team): boolean => {
+    if (event.partialRegistration) return false;
+    
+    const requiredSize = getRequiredTeamSize(event.participationType);
+    const actualSize = getTeamSize(team);
+    
+    return actualSize < requiredSize;
+  };
+
+  const handleDeleteTeam = async (teamLeaderId: string) => {
+    if (!event.eventId) {
+      toast.error("Event ID is missing. Cannot delete team.");
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      setDeletingTeamId(teamLeaderId);
+      
+      const response = await fetch("/api/superadmin/delete-team", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          eventId: event.eventId, 
+          teamLeaderId: parseInt(teamLeaderId) 
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete team participation");
+      }
+
+      const result = await response.json();
+      toast.success(result.message || "Team participation deleted successfully");
+      
+      if (onTeamDeleted) {
+        onTeamDeleted();
+      }
+    } catch (error) {
+      console.error("Error deleting team participation:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete team participation");
+    } finally {
+      setIsDeleting(false);
+      setDeletingTeamId(null);
+    }
+  };
+
+  const confirmDeletion = (team: Team) => {
+    const message = `Are you sure you want to delete ${team.teamLeader.name}'s team from this event? All team members will be removed. This action cannot be undone.`;
+      
+    if (confirm(message)) {
+      handleDeleteTeam(team.teamLeader.id);
+    }
+  };
 
   const filteredTeams = event.participants.filter((team) => {
     if (!selectedYear) return true;
@@ -112,34 +205,69 @@ export function EventParticipantsModal({
           {filteredTeams.length > 0 ? (
             filteredTeams.map((team, index) => (
               <div key={index} className="bg-neutral-700/50 rounded-lg p-4 space-y-4">
-                {/* Team Leader Section */}
-                <div>
-                  <h3 className="text-sm font-medium text-neutral-400 mb-2">
-                    Team Leader
-                  </h3>
-                  <div className="flex items-center gap-4 p-4 bg-neutral-700 rounded-lg">
-                    <div className="w-12 h-12 bg-neutral-600 rounded-full flex items-center justify-center">
-                      <span className="text-lg font-medium">
-                        {team.teamLeader.name.charAt(0)}
+                {/* Team Header with Delete Button for Superadmin */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium text-neutral-400">
+                      Team Leader
+                    </h3>
+                    {hasIncompleteMembers(team) && (
+                      <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded">
+                        Incomplete Team
                       </span>
+                    )}
+                  </div>
+                  
+                  {isSuperAdmin && (
+                    <button
+                      onClick={() => confirmDeletion(team)}
+                      disabled={isDeleting && deletingTeamId === team.teamLeader.id}
+                      className="text-red-400 hover:text-red-300 text-sm flex items-center gap-1 disabled:opacity-50"
+                    >
+                      {isDeleting && deletingTeamId === team.teamLeader.id ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Deleting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                            <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                          </svg>
+                          <span>Delete Team</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+                
+                {/* Team Leader Section */}
+                <div className="flex items-center gap-4 p-4 bg-neutral-700 rounded-lg">
+                  <div className="w-12 h-12 bg-neutral-600 rounded-full flex items-center justify-center">
+                    <span className="text-lg font-medium">
+                      {team.teamLeader.name.charAt(0)}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between flex-wrap gap-2 md:gap-0">
+                      <p className="font-medium">{team.teamLeader.name}</p>
+                      <div className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded">
+                        Confirmed
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between flex-wrap gap-2 md:gap-0">
-                        <p className="font-medium">{team.teamLeader.name}</p>
-                        <div className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded">
-                          Confirmed
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 mt-1">
-                        <p className="text-sm text-neutral-300">
-                          <span className="text-neutral-400">Year:</span>{" "}
-                          {team.teamLeader.year.replace("_", " ")}
-                        </p>
-                        <p className="text-sm text-neutral-300">
-                          <span className="text-neutral-400">SIC:</span>{" "}
-                          {team.teamLeader.sic}
-                        </p>
-                      </div>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      <p className="text-sm text-neutral-300">
+                        <span className="text-neutral-400">Year:</span>{" "}
+                        {team.teamLeader.year.replace("_", " ")}
+                      </p>
+                      <p className="text-sm text-neutral-300">
+                        <span className="text-neutral-400">SIC:</span>{" "}
+                        {team.teamLeader.sic}
+                      </p>
                     </div>
                   </div>
                 </div>

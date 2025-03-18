@@ -60,9 +60,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Determine if this user is a team leader or a team member
-    // A team leader either has mainParticipantId === null or is marked as teamLeader === true
-    const isTeamLeader = !userParticipation.mainParticipantId || userParticipation.teamLeader;
+    // Check if user is a team leader - only team leaders can delete team participation
+    const isTeamLeader = userParticipation.teamLeader;
     
     if (!isTeamLeader) {
       return NextResponse.json(
@@ -71,42 +70,52 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get all team members (either led by this user or where this user is a member)
-    let teamMembers = await prisma.eventParticipant.findMany({
-      where: {
-        eventId: Number(eventId),
-        OR: [
-          // If this is a team leader with members
-          { 
-            mainParticipantId: userParticipation.id 
+    // Get all team members if this is a team leader
+    let teamMemberIds = [];
+    let teamMembers = [];
+
+    if (userParticipation.mainParticipantId === null) {
+      // This is a main team leader - get all team members
+      teamMembers = await prisma.eventParticipant.findMany({
+        where: {
+          eventId: Number(eventId),
+          OR: [
+            // All members who have this user as their mainParticipant
+            { mainParticipantId: userParticipation.id },
+            // Include the leader themselves
+            { id: userParticipation.id }
+          ]
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              fcmToken: true,
+            },
           },
-          // Include the leader themselves
-          { 
-            id: userParticipation.id 
-          }
-        ]
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            fcmToken: true,
+          event: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-        event: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+      });
+
+      teamMemberIds = teamMembers.map(member => member.id);
+    } else {
+      // This is a team leader who is part of another team (unusual case)
+      // Just include their own record
+      teamMembers = [userParticipation];
+      teamMemberIds = [userParticipation.id];
+    }
 
     if (!teamMembers || teamMembers.length === 0) {
-      // If somehow no team members are found, still allow deletion of the user's own participation
+      // Fallback in case no team members found
       teamMembers = [userParticipation];
+      teamMemberIds = [userParticipation.id];
     }
 
     // The team lead is the requesting user
@@ -152,11 +161,11 @@ export async function POST(req: NextRequest) {
     // Wait for all notifications to be sent
     await Promise.all(notificationPromises);
 
-    // Delete related records in ClueScans and TreasureHunt
+    // Delete related records in ClueScans and TreasureHunt for all team members
     await prisma.clueScans.deleteMany({
       where: {
         eventParticipationId: {
-          in: teamMembers.map(member => member.id),
+          in: teamMemberIds,
         },
       },
     });
@@ -164,33 +173,35 @@ export async function POST(req: NextRequest) {
     await prisma.treasureHunt.deleteMany({
       where: {
         eventParticipationId: {
-          in: teamMembers.map(member => member.id),
+          in: teamMemberIds,
         },
       },
     });
 
-    // Now delete team participations
-    if (isTeamLeader && userParticipation.mainParticipantId === null) {
-      // If this is a main team leader (not a member of another team)
-      await prisma.eventParticipant.deleteMany({
+    // Now delete all team participations in a transaction to ensure consistency
+    await prisma.$transaction(async (tx) => {
+      // First clear mainParticipantId references to avoid foreign key constraints
+      if (userParticipation.mainParticipantId === null) {
+        // Update all team members to no longer reference the leader
+        await tx.eventParticipant.updateMany({
+          where: {
+            mainParticipantId: userParticipation.id,
+          },
+          data: {
+            mainParticipantId: null,
+          },
+        });
+      }
+
+      // Now delete all team members including the leader
+      await tx.eventParticipant.deleteMany({
         where: {
-          OR: [
-            // Delete the team leader's record
-            { id: userParticipation.id },
-            // Delete all team members' records
-            { mainParticipantId: userParticipation.id }
-          ]
+          id: {
+            in: teamMemberIds,
+          },
         },
       });
-    } else {
-      // If this is somehow a team leader who is also a member of another team
-      // or another special case, just delete their own record
-      await prisma.eventParticipant.delete({
-        where: {
-          id: userParticipation.id,
-        },
-      });
-    }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

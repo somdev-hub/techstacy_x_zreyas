@@ -6,7 +6,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { TeamDetailsModal } from "@/components/TeamDetailsModal";
-import { EventParticipantsModal, Team } from "@/components/EventParticipantsModal";
+import {
+  EventParticipantsModal,
+  Team,
+} from "@/components/EventParticipantsModal";
 import {
   Table,
   TableBody,
@@ -145,7 +148,11 @@ const Home = () => {
     eventType: EventType;
     participationType: ParticipationType;
     participants: Team[];
+    eventId: number; // Add eventId to the state
+    partialRegistration: boolean; // Add partialRegistration flag
   } | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [loadingEventId, setLoadingEventId] = useState<number | null>(null);
 
   // Fetch data and organize it for both tables
   React.useEffect(() => {
@@ -188,7 +195,7 @@ const Home = () => {
     };
 
     fetchData();
-  }, []);
+  }, [refreshTrigger]); // Add refreshTrigger to re-fetch data after team deletion
 
   // Filter participants for team leaders table - updated to ensure we only get team leaders
   const filteredParticipants = React.useMemo(() => {
@@ -326,7 +333,7 @@ const Home = () => {
       year: member.user.year,
       imageUrl: member.user.imageUrl,
       sic: member.user.sic, // Add SIC to team members
-      isConfirmed: member.isConfirmed // Add confirmation status
+      isConfirmed: member.isConfirmed, // Add confirmation status
     }));
   };
 
@@ -341,35 +348,65 @@ const Home = () => {
         imageUrl: participant.user.imageUrl,
         sic: participant.user.sic, // Add SIC to leader
         eventName: participant.event.eventName, // Add event name
-        isConfirmed: true // Team leader is always confirmed
+        isConfirmed: true, // Team leader is always confirmed
       },
       members: teamMembers,
     });
+    // Store the eventId for deletion purposes
+    setCurrentEventId(participant.eventId);
   };
 
   const handleViewEventParticipants = async (event: {
     event: Events;
     eventType: EventType;
     participationType: ParticipationType;
+    eventId: number; // Make sure we have eventId
   }) => {
     try {
-      const response = await fetch(`/api/events/get-event-details?eventName=${event.event}`);
+      setLoadingEventId(event.eventId);
+
+      const response = await fetch(
+        `/api/events/get-event-details?eventName=${event.event}`
+      );
       if (!response.ok) {
-        throw new Error('Failed to fetch event details');
+        throw new Error("Failed to fetch event details");
       }
       const data = await response.json();
-      
+
+      // Get event details to check partialRegistration
+      const eventDetailsResponse = await fetch(`/api/events/${event.eventId}`);
+      let partialRegistration = false;
+
+      if (eventDetailsResponse.ok) {
+        const eventDetails = await eventDetailsResponse.json();
+        partialRegistration = eventDetails.partialRegistration || false;
+      }
+
       // The data is already in the correct format from the API
       const validTeams = Array.isArray(data) ? data : [];
-      
+
       setSelectedEvent({
         ...event,
-        participants: validTeams
+        participants: validTeams,
+        eventId: event.eventId,
+        partialRegistration,
       });
     } catch (error) {
       console.error("Failed to fetch event participants:", error);
       toast.error("Failed to load event participants");
+    } finally {
+      setLoadingEventId(null);
     }
+  };
+
+  // Add state for tracking current event ID
+  const [currentEventId, setCurrentEventId] = useState<number | undefined>(
+    undefined
+  );
+
+  // Function to refresh data after team deletion
+  const handleTeamDeleted = () => {
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   return (
@@ -933,11 +970,38 @@ const Home = () => {
                           <TableCell>{event.participationType}</TableCell>
                           <TableCell>{event.totalParticipants}</TableCell>
                           <TableCell>
-                            <button 
-                              className="bg-blue-600 px-3 py-1 rounded-md"
+                            <button
+                              className="bg-blue-600 px-3 py-1 rounded-md flex items-center justify-center w-20 h-8 disabled:opacity-70"
                               onClick={() => handleViewEventParticipants(event)}
+                              disabled={loadingEventId === event.eventId}
                             >
-                              View
+                              {loadingEventId === event.eventId ? (
+                                <>
+                                  <svg
+                                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <circle
+                                      className="opacity-25"
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="currentColor"
+                                      strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                      className="opacity-75"
+                                      fill="currentColor"
+                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
+                                  </svg>
+                                  Loading
+                                </>
+                              ) : (
+                                "View"
+                              )}
                             </button>
                           </TableCell>
                         </TableRow>
@@ -955,9 +1019,15 @@ const Home = () => {
       {selectedTeam && (
         <TeamDetailsModal
           isOpen={!!selectedTeam}
-          onClose={() => setSelectedTeam(null)}
+          onClose={() => {
+            setSelectedTeam(null);
+            setCurrentEventId(undefined);
+          }}
           teamLeader={selectedTeam.leader}
           teamMembers={selectedTeam.members}
+          isSuperAdmin={true} // Since this is the super-admin page
+          eventId={currentEventId}
+          onTeamDeleted={handleTeamDeleted}
         />
       )}
 
@@ -967,6 +1037,8 @@ const Home = () => {
           isOpen={!!selectedEvent}
           onClose={() => setSelectedEvent(null)}
           event={selectedEvent}
+          isSuperAdmin={true} // Show delete option for superadmins
+          onTeamDeleted={handleTeamDeleted} // Reuse the same callback for refreshing data
         />
       )}
     </div>

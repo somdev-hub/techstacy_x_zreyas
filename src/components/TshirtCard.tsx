@@ -62,9 +62,10 @@ export function TshirtCard({ info }: TshirtCardProps) {
       </h2>
       <p className="text-neutral-300 text-sm mb-4">
         {
-          "A brillient combination of tech and style, get your hands on this exclusive t-shirt now! Order now to match the vibe of the event."}
+          "A brillient combination of tech and style, get your hands on this exclusive t-shirt now! Order now to match the vibe of the event."
+        }
       </p>
-      
+
       <div className="w-full mb-6">
         <Image
           src={info?.src || "/assets/tshirt.png"}
@@ -74,8 +75,8 @@ export function TshirtCard({ info }: TshirtCardProps) {
           alt="T-shirt"
         />
       </div>
-      
-      <div className="flex justify-center">
+
+      {/* <div className="flex justify-center">
         {info?.mainButton?.razorpay ? (
           <div ref={razorpayFormRef} className="w-full flex justify-center"></div>
         ) : (
@@ -86,6 +87,12 @@ export function TshirtCard({ info }: TshirtCardProps) {
             {info?.mainButton?.text || "Order Now"}
           </button>
         )}
+      </div> */}
+
+      <div className="">
+        <p className="text-center text-red-600 font-[600]">
+          T-shirt registrations are closed for now. Stay tuned for updates!
+        </p>
       </div>
     </div>
   );

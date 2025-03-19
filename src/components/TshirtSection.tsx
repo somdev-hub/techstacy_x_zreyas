@@ -43,10 +43,14 @@ const TshirtSection = () => {
               enthusiasts of all ages. Order yours today and be a part of the
               Techstacy X Zreyas experience.{" "}
             </p>
-            <div ref={razorpayFormRef} className="w-full flex justify-start">
-              {/* <button className="bg-white text-black py-2 px-4 rounded-lg hover:bg-white/10 transition-colors font-bold mt-4 hover:text-white">
-                Order Now
-              </button> */}
+            {/* <div ref={razorpayFormRef} className="w-full flex justify-start">
+             
+            </div> */}
+            <div className="">
+              <p className="text-red-600 font-[600]">
+                T-shirt registrations are closed for now. Stay tuned for
+                updates!
+              </p>
             </div>
           </div>
           <div className="items-center flex md:w-2/5">

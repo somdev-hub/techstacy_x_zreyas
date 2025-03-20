@@ -19,6 +19,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
+    // Delete all treasure hunt entries to deassign clues
+    await prisma.treasureHunt.deleteMany({
+      where: {
+        eventParticipant: {
+          event: { eventName: "TREASURE_HUNT" }
+        }
+      }
+    });
+
     // Update the event status to stopped
     await prisma.event.update({
       where: { eventName: "TREASURE_HUNT" },

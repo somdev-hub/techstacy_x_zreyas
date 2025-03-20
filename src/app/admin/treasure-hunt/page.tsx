@@ -129,6 +129,10 @@ const TreasureHuntAdmin = () => {
 
   const startHunt = async () => {
     try {
+      if (huntStatus === 'running') {
+        toast.error("Hunt is already running");
+        return;
+      }
       setIsStarting(true);
       const response = await fetch("/api/events/treasure-hunt/start", {
         method: "POST",
@@ -140,8 +144,8 @@ const TreasureHuntAdmin = () => {
       }
 
       toast.success("Hunt started successfully!");
-      setHuntStatus('running');
-      fetchTeams(); // Refresh teams to show assignments
+      await fetchHuntStatus(); // Refetch status to ensure correct state
+      await fetchTeams(); // Refresh teams to show assignments
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to start hunt");
     } finally {
@@ -151,6 +155,10 @@ const TreasureHuntAdmin = () => {
 
   const stopHunt = async () => {
     try {
+      if (huntStatus === 'stopped') {
+        toast.error("Hunt is already stopped");
+        return;
+      }
       setIsStopping(true);
       const response = await fetch("/api/events/treasure-hunt/stop", {
         method: "POST",
@@ -162,8 +170,8 @@ const TreasureHuntAdmin = () => {
       }
 
       toast.success("Hunt stopped successfully!");
-      setHuntStatus('stopped');
-      fetchTeams(); // Refresh teams to show updated state
+      await fetchHuntStatus(); // Refetch status to ensure correct state
+      await fetchTeams(); // Refresh teams to show updated state
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to stop hunt");
     } finally {
@@ -313,6 +321,8 @@ const TreasureHuntAdmin = () => {
       setHuntStatus(data.status);
     } catch (error) {
       console.error('Error fetching hunt status:', error);
+      // Default to stopped state if there's an error
+      setHuntStatus('stopped');
     } finally {
       setIsLoadingHuntStatus(false);
     }
@@ -456,14 +466,20 @@ const TreasureHuntAdmin = () => {
               <h2 className="text-lg sm:text-xl font-bold">Hunt Controls</h2>
               <p className="text-xs sm:text-sm text-neutral-400 mt-1">
                 Start or stop the hunt. Starting will assign clue pairs to teams with marked attendance.
+                {huntStatus === 'running' && (
+                  <span className="ml-2 text-green-400">Hunt is currently running</span>
+                )}
+                {huntStatus === 'stopped' && (
+                  <span className="ml-2 text-neutral-400">Hunt is currently stopped</span>
+                )}
               </p>
             </div>
             <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
               <button
                 onClick={startHunt}
-                disabled={isStarting || isStopping || huntStatus === 'running'}
+                disabled={isStarting || isStopping || huntStatus === 'running' || isLoadingHuntStatus}
                 className={`flex-1 sm:flex-none px-3 sm:px-6 py-2 rounded-md transition-colors ${
-                  isStarting || huntStatus === 'running'
+                  isStarting || huntStatus === 'running' || isLoadingHuntStatus
                     ? "bg-neutral-600 cursor-not-allowed"
                     : "bg-green-600 hover:bg-green-700"
                 }`}
@@ -477,9 +493,9 @@ const TreasureHuntAdmin = () => {
               </button>
               <button
                 onClick={stopHunt}
-                disabled={isStarting || isStopping || huntStatus === 'stopped'}
+                disabled={isStarting || isStopping || huntStatus === 'stopped' || isLoadingHuntStatus}
                 className={`flex-1 sm:flex-none px-3 sm:px-6 py-2 rounded-md transition-colors ${
-                  isStopping || huntStatus === 'stopped'
+                  isStopping || huntStatus === 'stopped' || isLoadingHuntStatus
                     ? "bg-neutral-600 cursor-not-allowed"
                     : "bg-red-600 hover:bg-red-700"
                 }`}

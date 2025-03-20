@@ -19,18 +19,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
-    // Check if there are any active treasure hunts
-    const activeTreasureHunt = await prisma.eventParticipant.findFirst({
+    // Check if the event is marked as running
+    const event = await prisma.event.findUnique({
       where: { 
-        event: { 
-          eventName: "TREASURE_HUNT",
-          partialRegistration: true // Using partialRegistration as hunt status flag
-        }
+        eventName: "TREASURE_HUNT"
       }
     });
 
+    // Check if there are any active treasure hunts (teams with assigned clues)
+    const activeTreasureHunt = await prisma.treasureHunt.findFirst();
+
     return NextResponse.json({
-      status: activeTreasureHunt ? 'running' : 'stopped'
+      status: (event?.partialRegistration && activeTreasureHunt) ? 'running' : 'stopped'
     });
 
   } catch (error) {

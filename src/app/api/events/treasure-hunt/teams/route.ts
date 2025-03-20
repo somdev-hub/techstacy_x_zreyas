@@ -61,12 +61,13 @@ export async function GET() {
           include: {
             clueObject: {
               select: {
-                clue: true
+                clue: true,
+                id: true
               }
             }
           },
           orderBy: {
-            scannedAt: 'desc'
+            scannedAt: 'asc'  // Change to ascending order
           }
         }
       }
@@ -76,23 +77,40 @@ export async function GET() {
     const winnerClue = await prisma.winnerClue.findFirst();
 
     const formattedTeams = teams.map(team => {
-      // Create the team's scanned clues array
-      const scannedClues = team.clueScans.map(scan => ({
-        clueId: scan.clueObjectId,
-        scannedAt: scan.scannedAt.toISOString(),
-        clue: {
-          clue: scan.clueObject.clue
+      // Create the team's scanned clues array with proper ordering
+      const scannedClues = team.clueScans.map(scan => {
+        let clueNumber;
+        if (team.treasureHunt?.clues) {
+          if (scan.clueObject.id === team.treasureHunt.clues.secondClueId) {
+            clueNumber = 2;
+          } else if (scan.clueObject.id === team.treasureHunt.clues.thirdClueId) {
+            clueNumber = 3;
+          } else if (scan.clueObject.id === team.treasureHunt.clues.finalClueId) {
+            clueNumber = 4;
+          }
         }
-      }));
-      
-      // If team has scanned the winner QR, add it to the list of scanned clues
+        return {
+          clueId: scan.clueObjectId,
+          scannedAt: scan.scannedAt.toISOString(),
+          clue: {
+            clue: scan.clueObject.clue
+          },
+          clueNumber
+        };
+      });
+
+      // Sort scanned clues by their assigned number
+      scannedClues.sort((a, b) => (a.clueNumber || 0) - (b.clueNumber || 0));
+
+      // If they've scanned the winner QR, add it to the list
       if (team.treasureHunt?.hasScannedWinnerQr && winnerClue) {
-        scannedClues.unshift({
+        scannedClues.push({
           clueId: -1, // Special ID for winner clue
           scannedAt: team.treasureHunt.winnerScanTime?.toISOString() || new Date().toISOString(),
           clue: {
             clue: winnerClue.clue + " 🏆"
-          }
+          },
+          clueNumber: 5
         });
       }
 

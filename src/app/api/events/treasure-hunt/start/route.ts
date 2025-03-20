@@ -5,6 +5,15 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// Helper function to shuffle an array
+function shuffleArray<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -37,33 +46,47 @@ export async function POST(request: Request) {
     // Get available clue pairs
     const cluePairs = await prisma.clues.findMany();
 
-    if (cluePairs.length < teams.length) {
-      throw new Error("Not enough clue pairs for all teams");
+    if (cluePairs.length === 0) {
+      throw new Error("No clue pairs available");
     }
 
-    // Assign clue pairs to teams randomly
-    const assignedPairs = new Set();
-    const updates = teams.map(async (team) => {
-      let randomPairIndex;
-      do {
-        randomPairIndex = Math.floor(Math.random() * cluePairs.length);
-      } while (assignedPairs.has(randomPairIndex));
-      
-      assignedPairs.add(randomPairIndex);
-      const selectedPair = cluePairs[randomPairIndex];
+    // Calculate the optimal distribution
+    const teamsPerClueSet = Math.ceil(teams.length / cluePairs.length);
+    
+    // Create an array with repeated clue pairs to match team count
+    let allClueAssignments: { clueId: number }[] = [];
+    cluePairs.forEach(pair => {
+      // Add each clue pair the required number of times
+      for (let i = 0; i < teamsPerClueSet; i++) {
+        allClueAssignments.push({ clueId: pair.id });
+      }
+    });
 
+    // Trim excess assignments if any
+    allClueAssignments = allClueAssignments.slice(0, teams.length);
+
+    // Shuffle the assignments
+    const shuffledAssignments = shuffleArray([...allClueAssignments]);
+
+    // Create treasure hunt entries for each team with their randomly assigned clue pair
+    const updates = teams.map(async (team, index) => {
       // Create treasure hunt entry for the team
       await prisma.treasureHunt.create({
         data: {
           eventParticipationId: team.id,
-          cluesId: selectedPair.id,
+          cluesId: shuffledAssignments[index].clueId,
         }
       });
     });
 
     await Promise.all(updates);
 
-    return NextResponse.json({ message: "Hunt started successfully" });
+    return NextResponse.json({
+      message: "Hunt started successfully",
+      teamsAssigned: teams.length,
+      clueSetCount: cluePairs.length,
+      teamsPerClueSet
+    });
 
   } catch (error) {
     console.error("Error starting hunt:", error);

@@ -9,6 +9,7 @@ type ClueHistory = {
   scannedAt: string;
   isLatest: boolean;
   clueNumber: number;
+  isAssigned?: boolean;
 };
 
 const TreasureHunt = () => {
@@ -75,8 +76,17 @@ const TreasureHunt = () => {
   const onScanSuccess = useCallback(async (decodedText: string) => {
     // Prevent multiple simultaneous scan attempts
     if (scanInProgressRef.current) return;
-    
+
     try {
+      // Immediately stop the scanner when a QR code is detected
+      if (scannerRef.current) {
+        try {
+          scannerRef.current.pause();
+        } catch (error) {
+          console.error("Error pausing scanner:", error);
+        }
+      }
+      
       scanInProgressRef.current = true;
       console.log("QR code detected:", decodedText);
       
@@ -95,7 +105,7 @@ const TreasureHunt = () => {
         toast.success("Clue found!");
         setLatestClue(data.clue);
         fetchClueHistory();
-        stopScanner();
+        stopScanner(); // Always stop scanner after successful scan
         return;
       }
 
@@ -114,6 +124,7 @@ const TreasureHunt = () => {
         throw new Error(winnerData.error || 'Failed to process QR code');
       }
 
+      // Always stop scanner after processing
       stopScanner();
 
       if (winnerData.isWinner) {
@@ -138,6 +149,7 @@ const TreasureHunt = () => {
       fetchClueHistory();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to process QR code');
+      stopScanner(); // Also stop scanner on error
     } finally {
       scanInProgressRef.current = false;
     }
@@ -169,12 +181,14 @@ const TreasureHunt = () => {
             qrContainer.removeChild(qrContainer.firstChild);
           }
 
-          const scanner = new Html5QrcodeScanner(
+          console.log("Initializing QR scanner...");
+          const html5QrcodeScanner = new Html5QrcodeScanner(
             "qr-reader",
             {
               fps: 10,
               qrbox: { width: 250, height: 250 },
               rememberLastUsedCamera: true,
+              aspectRatio: 1,
               // Force back camera only
               videoConstraints: {
                 facingMode: { exact: "environment" }
@@ -183,9 +197,10 @@ const TreasureHunt = () => {
             /* verbose= */ false
           );
 
-          scannerRef.current = scanner;
-          scanner.render(onScanSuccess, onScanFailure);
+          scannerRef.current = html5QrcodeScanner;
+          html5QrcodeScanner.render(onScanSuccess, onScanFailure);
           setScannerInitialized(true);
+          console.log("QR scanner initialized");
         } catch (error) {
           console.error("Failed to initialize QR scanner:", error);
           toast.error("Failed to initialize camera. Please try again.");
@@ -238,7 +253,7 @@ const TreasureHunt = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-2 pt-4 md:pt-0 md:p-6">
       <div className="flex gap-4 flex-col lg:flex-row">
         {/* Current Clue and Scanner Section */}
         <div className="bg-neutral-800 rounded-xl shadow-md p-4 lg:w-1/2">
@@ -308,23 +323,33 @@ const TreasureHunt = () => {
                       : history.isLatest 
                         ? 'bg-blue-900/50' 
                         : history.clueNumber === 5 
-                          ? 'bg-indigo-800/30 border border-indigo-500/30' 
-                          : 'bg-neutral-700'
+                          ? 'bg-indigo-800/30 border border-indigo-500/30'
+                          : history.isAssigned
+                            ? 'bg-green-900/30 border border-green-500/30'
+                            : 'bg-neutral-700'
                   }`}
                 >
                   <div className="flex justify-between items-start">
                     <p className="text-sm text-neutral-300 mb-1">
                       {history.clueNumber === 5 ? (
                         <span className="text-indigo-200 font-semibold">Winner QR</span>
+                      ) : history.isAssigned ? (
+                        <span className="text-green-200 font-semibold">Initial Clue</span>
                       ) : (
                         <span>Clue {history.clueNumber}</span>
                       )}
                     </p>
                     <p className="text-xs text-neutral-400">
-                      {new Date(history.scannedAt).toLocaleString()}
+                      {history.isAssigned ? 'Assigned: ' : ''}{new Date(history.scannedAt).toLocaleString()}
                     </p>
                   </div>
-                  <p className={`text-neutral-200 ${history.clueNumber === 5 ? 'text-indigo-200 font-medium' : ''}`}>
+                  <p className={`text-neutral-200 ${
+                    history.clueNumber === 5 
+                      ? 'text-indigo-200 font-medium' 
+                      : history.isAssigned
+                        ? 'text-green-200'
+                        : ''
+                  }`}>
                     {history.clue}
                   </p>
                 </div>

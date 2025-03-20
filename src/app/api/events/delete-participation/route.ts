@@ -120,6 +120,26 @@ export async function POST(req: NextRequest) {
       teamMemberIds = [userParticipation.id];
     }
 
+    // Check if attendance has been marked for any team member
+    const attendanceCheck = await prisma.eventAttendance.findFirst({
+      where: {
+        eventId: Number(eventId),
+        userId: {
+          in: teamMembers.map(member => member.user.id)
+        }
+      }
+    });
+
+    // Also check if isAttended flag is true for any team member
+    const attendedParticipant = teamMembers.find(member => member.isAttended);
+
+    if (attendanceCheck || attendedParticipant) {
+      return NextResponse.json(
+        { error: "Cannot cancel participation after attendance has been marked" },
+        { status: 403 }
+      );
+    }
+
     // The team lead is the requesting user
     const teamLead = userParticipation;
 

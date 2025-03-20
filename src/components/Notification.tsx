@@ -6,6 +6,53 @@ interface NotificationProps {
   toggleModal: () => void;
 }
 
+// Helper function to detect and convert URLs to clickable links
+const convertUrlsToLinks = (text: string) => {
+  // Regex to match URLs
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  
+  // If no URLs are found, return the text as is
+  if (!text.match(urlRegex)) {
+    return text;
+  }
+  
+  const result = [];
+  let lastIndex = 0;
+  let match;
+  
+  // Use regex.exec to find all matches and their positions
+  while ((match = urlRegex.exec(text)) !== null) {
+    // Add the text before the URL
+    if (match.index > lastIndex) {
+      result.push(text.substring(lastIndex, match.index));
+    }
+    
+    // Add the URL as a link
+    result.push(
+      <a 
+        key={`link-${match.index}`}
+        href={match[0]} 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className="text-blue-400 hover:text-blue-300 hover:underline"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {match[0]}
+      </a>
+    );
+    
+    // Update lastIndex to after this URL
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add any remaining text after the last URL
+  if (lastIndex < text.length) {
+    result.push(text.substring(lastIndex));
+  }
+  
+  return result;
+};
+
 const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
   const { notifications, markAsRead, clearNotifications, refetchNotifications } = useNotifications();
   const [loadingStates, setLoadingStates] = useState<Record<number, { accept: boolean; reject: boolean }>>({});
@@ -157,7 +204,7 @@ const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
               >
                 <h3 className="font-semibold mb-1">{notification.title}</h3>
                 <p className="text-sm text-neutral-300 mb-2">
-                  {notification.message}
+                  {convertUrlsToLinks(notification.message)}
                 </p>
                 <p className="text-xs text-neutral-400 mb-2">
                   {formatDate(notification.createdAt)}

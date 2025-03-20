@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
                 sic: true,
               },
             },
+
             otherParticipants: {
               include: {
                 user: {
@@ -103,6 +104,7 @@ export async function GET(req: NextRequest) {
             sic: reg.user.sic,
             isMainParticipant: true,
             isConfirmed: reg.isConfirmed,
+            isAttended: reg.isAttended,
           });
 
           // Add other team members
@@ -114,27 +116,30 @@ export async function GET(req: NextRequest) {
               sic: member.user.sic,
               isMainParticipant: false,
               isConfirmed: member.isConfirmed,
+              isAttended: member.isAttended,
             });
           });
         } else if (reg.mainParticipant) {
           // If this is a team member registration, get the main participant and all members
           teammates.push({
-            id: reg.user.id,
+            id: reg.mainParticipant.user.id,
             name: reg.mainParticipant.user.name,
             imageUrl: reg.mainParticipant.user.imageUrl,
             sic: reg.mainParticipant.user.sic,
             isMainParticipant: true,
             isConfirmed: reg.mainParticipant.isConfirmed,
+            isAttended: reg.mainParticipant.isAttended  // Fix: Use mainParticipant's isAttended status
           });
 
           reg.mainParticipant.otherParticipants.forEach((member) => {
             teammates.push({
-              id: reg.user.id,
+              id: member.user.id,  // Fix: Use member's user id instead of reg.user.id
               name: member.user.name,
               imageUrl: member.user.imageUrl,
               sic: member.user.sic,
               isMainParticipant: false,
               isConfirmed: member.isConfirmed,
+              isAttended: member.isAttended
             });
           });
         }

@@ -42,6 +42,42 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get participant details with team information
+    const participant = await prisma.eventParticipant.findFirst({
+      where: {
+        eventId,
+        userId,
+      },
+      include: {
+        user: true,
+        otherParticipants: {
+          include: {
+            user: true
+          }
+        }
+      }
+    });
+
+    if (!participant) {
+      return NextResponse.json({ error: "Participant not found" }, { status: 404 });
+    }
+
+    // Check if the main participant has attended
+    if (!participant.isAttended) {
+      return NextResponse.json({ error: "Main participant has not attended the event" }, { status: 400 });
+    }
+
+    // For team events, check if all team members have attended
+    if (participant.otherParticipants.length > 0) {
+      const notAttendedMembers = participant.otherParticipants.filter(member => !member.isAttended);
+      if (notAttendedMembers.length > 0) {
+        return NextResponse.json({ 
+          error: "Cannot assign result - some team members have not attended", 
+          notAttendedMembers: notAttendedMembers.map(m => m.user.name)
+        }, { status: 400 });
+      }
+    }
+
     // Update or create the result
     const result = await prisma.eventResult.upsert({
       where: {
@@ -60,52 +96,34 @@ export async function POST(request: Request) {
       },
     });
 
-    // Get participant details
-    const participant = await prisma.eventParticipant.findFirst({
-      where: {
-        eventId,
-        userId,
-      },
-      include: {
-        user: true,
-        otherParticipants: {
-          include: {
-            user: true
-          }
+    // Create notification for the team leader
+    await prisma.notification.create({
+      data: {
+        userId: participant.userId,
+        title: "Event Result Announcement",
+        message: `Congratulations! You secured position ${position} in ${isEventHead.event.name}!`,
+        type: NotificationType.GENERAL,
+        metadata: {
+          eventId,
+          position
         }
       }
     });
 
-    if (participant) {
-      // Create notification for the team leader
-      await prisma.notification.create({
-        data: {
-          userId: participant.userId,
+    // Create notifications for team members if it's a team event
+    if (participant.otherParticipants.length > 0) {
+      await prisma.notification.createMany({
+        data: participant.otherParticipants.map(member => ({
+          userId: member.userId,
           title: "Event Result Announcement",
-          message: `Congratulations! You secured position ${position} in ${isEventHead.event.name}!`,
+          message: `Congratulations! Your team secured position ${position} in ${isEventHead.event.name}!`,
           type: NotificationType.GENERAL,
           metadata: {
             eventId,
             position
           }
-        }
+        }))
       });
-
-      // Create notifications for team members if it's a team event
-      if (participant.otherParticipants.length > 0) {
-        await prisma.notification.createMany({
-          data: participant.otherParticipants.map(member => ({
-            userId: member.userId,
-            title: "Event Result Announcement",
-            message: `Congratulations! Your team secured position ${position} in ${isEventHead.event.name}!`,
-            type: NotificationType.GENERAL,
-            metadata: {
-              eventId,
-              position
-            }
-          }))
-        });
-      }
     }
 
     return NextResponse.json(result);

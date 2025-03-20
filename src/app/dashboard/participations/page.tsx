@@ -11,6 +11,7 @@ interface TeamMember {
   sic: string;
   isMainParticipant: boolean;
   isConfirmed: boolean;
+  isAttended: boolean;
 }
 
 interface RegisteredEvent {
@@ -26,38 +27,50 @@ interface RegisteredEvent {
   registrationFee: number;
   prizePool: number;
   qrCode: string;
-  isAttended: boolean;
+
   teammates?: TeamMember[];
 }
 
 const Purchases = () => {
-  const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>([]);
+  const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRegisteredEvents = async () => {
       try {
-        console.log('Fetching registered events...');
-        const response = await fetch('/api/events/user-events', {
-          credentials: 'include'
+        // console.log("Fetching registered events...");
+        const response = await fetch("/api/events/user-events", {
+          credentials: "include",
         });
-        
+
         const data = await response.json();
-        console.log('Response status:', response.status);
+        console.log("Fetched data:", data);
         
+        console.log("Response status:", response.status);
+
         if (!response.ok) {
-          console.error('Failed to fetch events:', data);
-          throw new Error(data.error || 'Failed to fetch events');
+          console.error("Failed to fetch events:", data);
+          throw new Error(data.error || "Failed to fetch events");
         }
 
-        console.log('Fetched events:', data);
+        console.log("Fetched events:", data);
         setRegisteredEvents(data);
         setError(null);
       } catch (error) {
-        console.error('Error fetching events:', error);
-        setError(error instanceof Error ? error.message : 'Failed to load registered events');
-        toast.error(error instanceof Error ? error.message : "Failed to load registered events");
+        console.error("Error fetching events:", error);
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load registered events"
+        );
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to load registered events"
+        );
       } finally {
         setIsLoading(false);
       }
@@ -90,8 +103,12 @@ const Purchases = () => {
     );
   }
 
-  const culturalEvents = registeredEvents.filter(event => event.eventType === "CULTURAL");
-  const nonCulturalEvents = registeredEvents.filter(event => event.eventType !== "CULTURAL");
+  const culturalEvents = registeredEvents.filter(
+    (event) => event.eventType === "CULTURAL"
+  );
+  const nonCulturalEvents = registeredEvents.filter(
+    (event) => event.eventType !== "CULTURAL"
+  );
 
   return (
     <div className="bg-neutral-900 overflow-y-scroll no-visible-scrollbar pt-6 w-full px-4 md:px-8 my-2 mr-2 rounded-2xl">
@@ -99,7 +116,9 @@ const Purchases = () => {
         <>
           <div className="mb-8">
             <h1 className="text-[1.5rem] font-[700]">My Events</h1>
-            <p className="text-[1.25rem]">View your registered events and QR codes</p>
+            <p className="text-[1.25rem]">
+              View your registered events and QR codes
+            </p>
           </div>
           <div className="mt-8 w-full mb-12">
             <div className="flex gap-8">
@@ -115,7 +134,9 @@ const Purchases = () => {
         <>
           <div className="mb-8">
             <h1 className="text-[1.5rem] font-[700]">My Cultural Events</h1>
-            <p className="text-[1.25rem]">View your registered cultural events</p>
+            <p className="text-[1.25rem]">
+              View your registered cultural events
+            </p>
           </div>
           <div className="mt-8 w-full">
             <div className="flex gap-8">

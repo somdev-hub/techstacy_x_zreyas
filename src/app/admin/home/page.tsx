@@ -242,8 +242,16 @@ const Home = () => {
       if (scanInProgressRef.current) return;
 
       try {
+        // Immediately stop the scanner when a QR code is detected
+        if (scannerRef.current) {
+          try {
+            scannerRef.current.pause();
+          } catch (error) {
+            console.error("Error pausing scanner:", error);
+          }
+        }
+        
         scanInProgressRef.current = true;
-
         console.log("QR code scanned:", decodedText);
 
         const response = await fetch("/api/events/mark-attendance", {
@@ -273,12 +281,14 @@ const Home = () => {
           setEventAttendance(refreshData);
         }
 
-        // Reset scanning state
+        // Always stop scanner completely after processing
         stopScanner();
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Failed to mark attendance"
         );
+        // Also stop scanner on error
+        stopScanner();
       } finally {
         scanInProgressRef.current = false;
       }
@@ -313,18 +323,22 @@ const Home = () => {
           }
 
           console.log("Initializing QR scanner...");
-          const scanner = new Html5QrcodeScanner(
+          const html5QrcodeScanner = new Html5QrcodeScanner(
             "qr-reader",
             {
               fps: 10,
               qrbox: { width: 250, height: 250 },
               rememberLastUsedCamera: true,
+              aspectRatio: 1,
+              videoConstraints: {
+                facingMode: { exact: "environment" }
+              }
             },
             /* verbose= */ false
           );
 
-          scannerRef.current = scanner;
-          scanner.render(onScanSuccess, onScanFailure);
+          scannerRef.current = html5QrcodeScanner;
+          html5QrcodeScanner.render(onScanSuccess, onScanFailure);
           setScannerInitialized(true);
           console.log("QR scanner initialized");
         } catch (error) {
@@ -334,10 +348,11 @@ const Home = () => {
         }
       }, 100);
 
-      return () => clearTimeout(timeoutId);
+      // Clear the timeout if the component unmounts
+      return () => {
+        clearTimeout(timeoutId);
+      };
     }
-
-    return () => {};
   }, [isScanning, scannerInitialized, onScanSuccess, onScanFailure]);
 
   // Cleanup on component unmount
@@ -452,27 +467,27 @@ const Home = () => {
 
           <div className="md:w-[30%] w-full">
             {/* QR scanning section - no changes needed */}
-            <div className="bg-neutral-800 rounded-xl shadow-md p-3 md:p-4 w-full max-h-[475px]">
+            <div className="bg-neutral-800 rounded-xl shadow-md p-3 md:p-4 w-full md:max-h-[475px]">
               <h1 className="text-[1rem] md:text-[1.125rem] font-[700] mb-3">
                 Scan QR Code
               </h1>
               <div className="flex flex-col gap-3">
                 {isScanning ? (
-                  <>
+                  <div className="flex flex-col gap-3">
                     <div
                       id="qr-reader"
-                      className="w-full h-[16rem] md:h-[18rem]"
+                      className="w-full h-[480px] md:h-[300px]"
                     />
                     <button
                       onClick={stopScanner}
-                      className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 px-3 py-1.5 md:px-4 md:py-2 rounded-md transition-colors text-sm md:text-base"
+                      className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 px-3 py-1.5 md:px-4 md:py-2 rounded-md transition-colors text-sm md:text-base mt-auto"
                     >
                       Stop Scanning
                     </button>
-                  </>
+                  </div>
                 ) : (
                   <>
-                    <div className="relative h-[16rem] md:h-[18rem] bg-neutral-700 rounded-lg flex items-center justify-center">
+                    <div className="relative h-[250px] md:h-[300px] bg-neutral-700 rounded-lg flex items-center justify-center">
                       {/* QR Scanner overlay */}
                       <div className="absolute inset-4 border-2 border-dashed border-blue-500 rounded-lg"></div>
 
@@ -520,7 +535,7 @@ const Home = () => {
                     </div>
 
                     <button
-                      className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 md:px-4 md:py-2 rounded-md transition-colors text-sm md:text-base"
+                      className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 px-3 py-1.5 md:px-4 md:py-2 rounded-md transition-colors text-sm md:text-base mt-auto"
                       onClick={startScanner}
                     >
                       <svg

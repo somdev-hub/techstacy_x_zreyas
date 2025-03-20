@@ -9,6 +9,8 @@ const prisma = new PrismaClient();
 export async function POST(req: NextRequest) {
   try {
     const { eventId, teamLeaderId } = await req.json();
+    console.log("Received data:", { eventId, teamLeaderId });
+    
     const cookieStore = await cookies();
     const token = cookieStore.get("accessToken")?.value;
 
@@ -45,8 +47,8 @@ export async function POST(req: NextRequest) {
     // Find the team leader's participation record based on userId and eventId
     const teamLeaderParticipation = await prisma.eventParticipant.findFirst({
       where: {
+        id: Number(teamLeaderId), // Using the teamLeaderId as the EventParticipant ID
         eventId: Number(eventId),
-        userId: Number(teamLeaderId),
         teamLeader: true,
         mainParticipantId: null, // This ensures we're getting the main team leader
       },
@@ -67,6 +69,9 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+
+    console.log("Team leader participation record:", teamLeaderParticipation);
+    
 
     let teamMembers;
     let isOrphanedTeam = false;

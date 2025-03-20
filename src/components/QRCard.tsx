@@ -14,6 +14,7 @@ interface TeamMember {
   isMainParticipant: boolean;
   isConfirmed: boolean;
   id: number;
+  isAttended: boolean; // Added isAttended property
 }
 
 interface QRCardProps {
@@ -30,7 +31,7 @@ interface QRCardProps {
     registrationFee: number;
     prizePool: number;
     qrCode: string;
-    isAttended: boolean;
+    // isAttended: boolean;
     teammates?: TeamMember[];
   }[];
 }
@@ -54,7 +55,7 @@ export function QRCard({ cardData }: QRCardProps) {
       time: event.time,
       event: event,
       qrCode: event.qrCode,
-      isAttended: event.isAttended,
+      // isAttended: event.isAttended,
     };
   });
 
@@ -106,6 +107,12 @@ export function QRCard({ cardData }: QRCardProps) {
       a.isMainParticipant ? -1 : b.isMainParticipant ? 1 : 0
     );
 
+    // Count attended members
+    const attendedCount = sortedMembers.filter(member => member.isAttended).length;
+    const totalMembers = sortedMembers.length;
+    const isPartiallyAttended = attendedCount > 0 && attendedCount < totalMembers;
+    const isFullyAttended = attendedCount === totalMembers;
+
     return (
       <div className="mt-4 p-4 bg-neutral-800 rounded-lg">
         <h4 className="text-neutral-200 font-semibold mb-3">Team Members</h4>
@@ -133,16 +140,37 @@ export function QRCard({ cardData }: QRCardProps) {
               <div className="flex items-center">
                 <span
                   className={`px-2 py-1 rounded text-xs ${
-                    member.isConfirmed
+                    member.isAttended
                       ? "bg-green-500/20 text-green-400"
+                      : member.isConfirmed
+                      ? "bg-blue-500/20 text-blue-400"
                       : "bg-yellow-500/20 text-yellow-400"
                   }`}
                 >
-                  {member.isConfirmed ? "Confirmed" : "Pending"}
+                  {member.isAttended
+                    ? "Attended"
+                    : member.isConfirmed
+                    ? "Confirmed"
+                    : "Pending"}
                 </span>
               </div>
             </div>
           ))}
+        </div>
+        <div className="mt-4 p-2 rounded">
+          <p className={`text-sm ${
+            isFullyAttended 
+              ? "text-green-400" 
+              : isPartiallyAttended 
+                ? "text-yellow-400" 
+                : "text-yellow-400"
+          }`}>
+            {isFullyAttended 
+              ? "All team members have marked attendance" 
+              : isPartiallyAttended
+                ? `${attendedCount} of ${totalMembers} members have marked attendance`
+                : "Attendance pending for all members"}
+          </p>
         </div>
       </div>
     );
@@ -272,15 +300,19 @@ export function QRCard({ cardData }: QRCardProps) {
                     {renderEventDetails(active)}
                     <div className="mt-4 p-4 bg-neutral-800 rounded-lg">
                       <p
-                        className={
-                          active.isAttended
+                        className={`${
+                           (active.event.teammates && active.event.teammates.every(member => member.isAttended))
                             ? "text-green-400"
-                            : "text-yellow-400"
-                        }
+                            : active.event.teammates && active.event.teammates.some(member => member.isAttended)
+                              ? "text-yellow-400"
+                              : "text-yellow-400"
+                        }`}
                       >
-                        {active.isAttended
+                        {(active.event.teammates && active.event.teammates.every(member => member.isAttended))
                           ? "Attendance Marked"
-                          : "Attendance Pending"}
+                          : active.event.teammates && active.event.teammates.some(member => member.isAttended)
+                            ? "Attendance Marked Partially"
+                            : "Attendance Pending"}
                       </p>
                     </div>
                   </motion.div>

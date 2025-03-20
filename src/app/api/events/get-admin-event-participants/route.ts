@@ -49,6 +49,7 @@ export async function GET() {
         eventId: true,
         userId: true,
         mainParticipantId: true,
+        isAttended: true,
         user: {
           select: {
             id: true,
@@ -69,6 +70,12 @@ export async function GET() {
             eventType: true,
             participationType: true,
             imageUrl: true,
+            eventResults: {
+              select: {
+                userId: true,
+                position: true,
+              },
+            },
           },
         },
         otherParticipants: {
@@ -81,6 +88,7 @@ export async function GET() {
             id: true,
             userId: true,
             isConfirmed: true,
+            isAttended: true,
             user: {
               select: {
                 id: true,

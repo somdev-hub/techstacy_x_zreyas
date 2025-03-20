@@ -34,6 +34,11 @@ export async function POST(req: Request) {
         include: {
           user: true,
           event: true,
+          otherParticipants: {
+            include: {
+              user: true,
+            },
+          },
         },
       });
 
@@ -56,15 +61,15 @@ export async function POST(req: Request) {
         );
       }
 
-      // Check if attendance is already marked
+      // Check if attendance is already marked for this participant
       if (participant.isAttended) {
         return NextResponse.json(
-          { error: "Attendance already marked" },
+          { error: "Attendance already marked for this participant" },
           { status: 400 }
         );
       }
 
-      // Create attendance record and update participant status in a transaction
+      // Create attendance record and update participant status
       await prisma.$transaction([
         prisma.eventAttendance.create({
           data: {
@@ -74,9 +79,48 @@ export async function POST(req: Request) {
         }),
         prisma.eventParticipant.update({
           where: { id: participant.id },
-          data: { isAttended: true },
+          data: { 
+            isAttended: true,
+            isConfirmed: true  // Set confirmation when attendance is marked
+          },
         }),
       ]);
+
+      // For team events, check if all team members have marked attendance
+      const isTeamEvent = participant.otherParticipants.length > 0;
+      let teamStatus = null;
+      
+      if (isTeamEvent) {
+        const allTeamParticipants = [
+          participant,
+          ...participant.otherParticipants,
+        ];
+        const attendedCount = allTeamParticipants.filter(
+          (p) => p.isAttended
+        ).length;
+        const totalMembers = allTeamParticipants.length;
+        
+        teamStatus = {
+          attendedCount,
+          totalMembers,
+          isFullyAttended: attendedCount === totalMembers,
+          isPartiallyAttended: attendedCount > 0 && attendedCount < totalMembers,
+        };
+      }
+
+      // Fetch updated participant data with team status
+      const updatedParticipant = await prisma.eventParticipant.findFirst({
+        where: { id: participant.id },
+        include: {
+          user: true,
+          event: true,
+          otherParticipants: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
 
       return NextResponse.json({
         success: true,
@@ -85,6 +129,8 @@ export async function POST(req: Request) {
           name: participant.user.name,
           event: participant.event.name,
         },
+        teamStatus,
+        updatedParticipant,
       });
     } catch (error) {
       console.error("Token verification failed:", error);

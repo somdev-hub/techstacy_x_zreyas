@@ -27,13 +27,27 @@ export async function GET() {
         id: true,
         eventId: true,
         userId: true,
+        isAttended: true,
         user: {
           select: {
             name: true,
             sic: true,
           }
         },
-        mainParticipantId: true
+        mainParticipantId: true,
+        otherParticipants: {
+          select: {
+            id: true,
+            userId: true,
+            isAttended: true,
+            user: {
+              select: {
+                name: true,
+                sic: true
+              }
+            }
+          }
+        }
       }
     });
 

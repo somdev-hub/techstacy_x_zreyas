@@ -22,21 +22,47 @@ export async function GET() {
       );
     }
 
+    // Get all non-cultural events
     const events = await prisma.event.findMany({
       where: {
         eventType: {
           not: EventType.CULTURAL
         }
       },
-      select: {
-        id: true,
-        name: true,
-        eventName: true,
-        eventType: true,
+      include: {
         eventResults: {
           select: {
             userId: true,
             position: true
+          }
+        },
+        participants: {
+          where: {
+            mainParticipantId: null // Only get team leaders
+          },
+          select: {
+            id: true,
+            userId: true,
+            isAttended: true,
+            user: {
+              select: {
+                name: true,
+                sic: true
+              }
+            },
+            otherParticipants: {
+              select: {
+                id: true,
+                userId: true,
+                isAttended: true,
+                user: {
+                  select: {
+                    name: true,
+                    sic: true
+                  }
+                }
+              }
+            }
           }
         }
       }

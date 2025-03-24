@@ -51,6 +51,8 @@ TechStacy x Zreyas is a Next.js-based web application designed to streamline the
 
 ## Tech Stack
 
+- **Programming Languages**: TypeScript
+- **Framework**: Next.js 15
 - **Frontend**: Next.js 15, React, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes
 - **Database**: Azure MySQL with Prisma ORM
@@ -70,6 +72,7 @@ TechStacy x Zreyas is a Next.js-based web application designed to streamline the
 - **Session Recording**: Microsoft Clarity
 
 ## Project Structure
+
 ```
 TECHSTACY_X_ZREYAS/
 ├── public/ # Static assets like images, fonts and manifest
@@ -154,12 +157,15 @@ The system also includes session recording and heatmap generation using Microsof
 - Sentry for error logging and monitoring
 
 ### QR Code-based Attendance Tracking
+
 The attendance tracking system uses QR codes to verify user attendance at events. Users can scan their QR codes at the event venue to mark their attendance. The system tracks attendance status and generates reports for event coordinators and admins. The QR code-based system ensures accurate attendance tracking and simplifies the check-in process for users.
 
 ### Treasure Hunt Management
+
 The treasure hunt management system allows users to participate in a treasure hunt event. The system includes features for clue tracking, clue object management, and winner declaration. Users can scan clues to progress through the treasure hunt, and the system tracks their progress and results. The treasure hunt management system is designed to provide an engaging and interactive experience for users.
 
 ### Result Management
+
 The result management system allows event coordinators and admins to declare event results and manage prize pools. The system tracks user positions and generates reports for event results. Users can view their results and receive notifications about their performance in events. The result management system ensures transparency and accuracy in event results, providing users with a clear understanding of their performance.
 
 ## Getting Started

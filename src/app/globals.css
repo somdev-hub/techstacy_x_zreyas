@@ -272,3 +272,19 @@ html {
 html::-webkit-scrollbar {
   display: none;
 }
+
+/* Add gradient borders for notifications - simplified solid approach */
+.bg-gradient-border-gold {
+  border: 3px solid gold;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.bg-gradient-border-silver {
+  border: 3px solid silver;
+  box-shadow: 0 0 10px rgba(192, 192, 192, 0.5);
+}
+
+.bg-gradient-border-bronze {
+  border: 3px solid #cd7f32;
+  box-shadow: 0 0 10px rgba(205, 127, 50, 0.5);
+}

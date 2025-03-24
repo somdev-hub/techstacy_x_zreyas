@@ -60,7 +60,7 @@ export function EventCard({
     description: event.description,
     title: event.name,
     src: event.imageUrl,
-    ctaText: "Register",
+    ctaText: "Registration Closed",
     ctaLink: "#",
     participationType: event.participationType as ParticipationType,
     eventType: event.eventType,
@@ -107,30 +107,10 @@ export function EventCard({
 
   const handleRegisterClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-
-    // Don't do anything if user is already registered
-    if (
-      active &&
-      typeof active === "object" &&
-      registeredEvents.includes(active.event.id)
-    ) {
-      return;
-    }
-
-    // If it's a solo event, register immediately
-    if (
-      active &&
-      typeof active === "object" &&
-      active.participationType === ParticipationType.SOLO
-    ) {
-      handleSoloRegistration();
-    } else {
-      // For team events, show form
-      setShowForm(true);
-      setSearchQuery("");
-      setSearchResults([]);
-      setSelectedParticipants([]);
-    }
+    
+    // Prevent all registrations by showing a toast message
+    toast.info("Registration is currently closed for all events");
+    return;
   };
 
   const handleSoloRegistration = async () => {
@@ -593,23 +573,15 @@ export function EventCard({
                     >
                       {active.title}
                     </motion.h3>
-                    {/* <motion.p
-                      layoutId={`description-${active.description}-${id}`}
-                      className="text-neutral-400"
-                    >
-                      {active.description}
-                    </motion.p> */}
                   </div>
 
-                  {!showForm && !registeredEvents.includes(active.event.id) && (
+                  {!showForm && (
                     <motion.button
                       layoutId={`button-${active.title}-${id}`}
-                      onClick={handleRegisterClick}
-                      className="px-4 py-3 text-sm rounded-full font-bold whitespace-nowrap bg-green-500 text-white hover:bg-green-600"
+                      disabled={true}
+                      className="px-4 py-3 text-sm rounded-full font-bold whitespace-nowrap bg-gray-500 text-white cursor-not-allowed"
                     >
-                      {active.participationType === ParticipationType.SOLO
-                        ? "Register Now"
-                        : "Create Team"}
+                      Registration Closed
                     </motion.button>
                   )}
                 </div>
@@ -624,17 +596,13 @@ export function EventCard({
                   >
                     {renderEventDetails(active)}
 
-                    {registeredEvents.includes(active.event.id) && (
-                      <div className="mt-4 p-4 bg-neutral-800 rounded-lg">
-                        <p className="text-yellow-400">
-                          You are already registered for this event.
-                        </p>
-                      </div>
-                    )}
+                    <div className="mt-4 p-4 bg-neutral-800 rounded-lg">
+                      <p className="text-yellow-400">
+                        Registration for all events is currently closed.
+                      </p>
+                    </div>
 
-                    {showForm &&
-                      !registeredEvents.includes(active.event.id) &&
-                      renderRegistrationForm(active)}
+                    {showForm && renderRegistrationForm(active)}
                   </motion.div>
                 </div>
               </div>
@@ -651,11 +619,7 @@ export function EventCard({
               setActive(card);
               resetForm();
             }}
-            className={`py-4 md:p-4 flex flex-col md:flex-row justify-between items-center rounded-xl ${
-              registeredEvents.includes(card.event.id)
-                ? "bg-neutral-800/50"
-                : "hover:bg-neutral-800"
-            } cursor-pointer`}
+            className="py-4 md:p-4 flex flex-col md:flex-row justify-between items-center rounded-xl hover:bg-neutral-800 cursor-pointer"
           >
             <div className="flex gap-4 flex-col md:flex-row md:w-[80%]">
               <motion.div
@@ -687,25 +651,10 @@ export function EventCard({
             </div>
             <motion.button
               layoutId={`button-${card.title}-${id}`}
-              className={`px-4 py-2 w-32 text-sm rounded-full font-bold mt-4 md:mt-0 ${
-                registeredEvents.includes(card.event.id)
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gray-100 hover:bg-green-500 hover:text-white"
-              } text-black`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!registeredEvents.includes(card.event.id)) {
-                  setActive(card);
-                  resetForm();
-                }
-              }}
-              disabled={registeredEvents.includes(card.event.id)}
+              className="px-4 py-2 w-32 text-sm rounded-full font-bold mt-4 md:mt-0 bg-gray-400 cursor-not-allowed text-white"
+              disabled={true}
             >
-              {registeredEvents.includes(card.event.id)
-                ? "Registered"
-                : card.participationType === ParticipationType.SOLO
-                ? "Register"
-                : "Create Team"}
+              Registration Closed
             </motion.button>
           </motion.div>
         ))}

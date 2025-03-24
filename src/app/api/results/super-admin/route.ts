@@ -53,21 +53,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Participant not found" }, { status: 404 });
     }
 
-    // Check if the main participant has attended
-    if (!participant.isAttended) {
-      return NextResponse.json({ error: "Main participant has not attended the event" }, { status: 400 });
-    }
-
-    // For team events, check if all team members have attended
-    if (participant.otherParticipants.length > 0) {
-      const notAttendedMembers = participant.otherParticipants.filter(member => !member.isAttended);
-      if (notAttendedMembers.length > 0) {
-        return NextResponse.json({ 
-          error: "Cannot assign result - some team members have not attended", 
-          notAttendedMembers: notAttendedMembers.map(m => m.user.name)
-        }, { status: 400 });
-      }
-    }
+    // No longer checking for attendance - removed attendance validation here
 
     // Update or create the result
     const result = await prisma.eventResult.upsert({
@@ -87,12 +73,17 @@ export async function POST(request: Request) {
       },
     });
 
-    // Create notification for the team leader
+    // Determine if this is a team event
+    const isTeamEvent = participant.otherParticipants.length > 0;
+
+    // Create notification for the participant
     await prisma.notification.create({
       data: {
         userId: participant.userId,
-        title: "Event Result Update",
-        message: `Your position in ${event.name} has been updated to ${position}!`,
+        title: isTeamEvent ? "Congratulations to Your Team!" : "Congratulations on Your Achievement!",
+        message: isTeamEvent 
+          ? `Your team has achieved ${position}${position === 1 ? 'st' : position === 2 ? 'nd' : position === 3 ? 'rd' : 'th'} position in ${event.name}! Excellent teamwork!`
+          : `You've secured ${position}${position === 1 ? 'st' : position === 2 ? 'nd' : position === 3 ? 'rd' : 'th'} position in ${event.name}! Great job!`,
         type: NotificationType.GENERAL,
         metadata: {
           eventId,
@@ -102,12 +93,12 @@ export async function POST(request: Request) {
     });
 
     // Create notifications for team members if it's a team event
-    if (participant.otherParticipants.length > 0) {
+    if (isTeamEvent) {
       await prisma.notification.createMany({
         data: participant.otherParticipants.map(member => ({
           userId: member.userId,
-          title: "Event Result Update",
-          message: `Your team's position in ${event.name} has been updated to ${position}!`,
+          title: "Congratulations to Your Team!",
+          message: `Your team has achieved ${position}${position === 1 ? 'st' : position === 2 ? 'nd' : position === 3 ? 'rd' : 'th'} position in ${event.name}! Excellent teamwork!`,
           type: NotificationType.GENERAL,
           metadata: {
             eventId,

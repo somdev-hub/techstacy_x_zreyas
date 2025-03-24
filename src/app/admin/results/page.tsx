@@ -73,16 +73,8 @@ export default function Results() {
   }, []);
 
   const canAssignResult = (participant: EventParticipant): boolean => {
-    // Check if the main participant has attended
-    if (!participant.isAttended) return false;
-
-    // For team events, check if all members have attended
-    if (participant.otherParticipants.length > 0) {
-      return participant.otherParticipants.every(member => member.isAttended);
-    }
-
-    // For solo events, just check the main participant's attendance
-    return participant.isAttended;
+    // Always allow assigning results regardless of attendance
+    return true;
   };
 
   return (
@@ -118,7 +110,6 @@ export default function Results() {
                           );
                         
                         const hasTeamAttended = canAssignResult(participant);
-                        const notAttendedMembers = participant.otherParticipants.filter(m => !m.isAttended);
 
                         return (
                           <div
@@ -135,9 +126,7 @@ export default function Results() {
                                   <div className="flex-1">
                                     <p className="text-sm flex items-center gap-2">
                                       {participant.user.name}
-                                      {!participant.isAttended && (
-                                        <span className="text-red-400 text-xs">(Not Attended)</span>
-                                      )}
+                                      {/* Removed attendance indicator */}
                                     </p>
                                     <p className="text-xs text-neutral-400">{participant.user.sic}</p>
                                   </div>
@@ -154,20 +143,14 @@ export default function Results() {
                                       <div key={member.id} className="pl-2 flex items-center gap-2">
                                         <p className="text-xs">
                                           {member.user.name}
-                                          {!member.isAttended && (
-                                            <span className="text-red-400 ml-1">(Not Attended)</span>
-                                          )}
+                                          {/* Removed attendance indicator */}
                                         </p>
                                         <p className="text-xs text-neutral-400">{member.user.sic}</p>
                                       </div>
                                     ))}
                                   </div>
                                 )}
-                                {participant.otherParticipants.length > 0 && notAttendedMembers.length > 0 && (
-                                  <div className="mt-2 text-xs text-red-400">
-                                    Pending Attendance: {notAttendedMembers.map(m => m.user.name).join(", ")}
-                                  </div>
-                                )}
+                                {/* Removed pending attendance section */}
                               </div>
                               <div className="flex gap-2 items-center">
                                 {hasTeamAttended ? (

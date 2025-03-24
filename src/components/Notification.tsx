@@ -53,6 +53,46 @@ const convertUrlsToLinks = (text: string) => {
   return result;
 };
 
+// Helper function to determine if a notification is a result notification
+const isResultNotification = (notification: any): boolean => {
+  return notification.title.includes("Result") || 
+         notification.message.includes("position") || 
+         notification.message.includes("secured position");
+};
+
+// Helper function to extract position from notification
+const getPosition = (notification: any): number | null => {
+  // Check metadata first if available
+  if (notification.metadata && typeof notification.metadata === 'object' && notification.metadata.position) {
+    return Number(notification.metadata.position);
+  }
+  
+  // Otherwise try to parse from the message
+  const positionMatch = notification.message.match(/position (\d+)/i) || 
+                        notification.message.match(/secured (\d+)/i);
+  if (positionMatch && positionMatch[1]) {
+    return Number(positionMatch[1]);
+  }
+  
+  return null;
+};
+
+// Helper function to get gradient border class based on position
+const getPositionGradient = (position: number | null): string => {
+  if (!position) return '';
+  
+  switch (position) {
+    case 1:
+      return 'border-2 border-transparent bg-gradient-border-gold';
+    case 2:
+      return 'border-2 border-transparent bg-gradient-border-silver';
+    case 3:
+      return 'border-2 border-transparent bg-gradient-border-bronze';
+    default:
+      return '';
+  }
+};
+
 const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
   const { notifications, markAsRead, clearNotifications, refetchNotifications } = useNotifications();
   const [loadingStates, setLoadingStates] = useState<Record<number, { accept: boolean; reject: boolean }>>({});
@@ -172,7 +212,7 @@ const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
               className="text-neutral-400 hover:text-white"
             >
               <svg
-                xmlns="http://www.w3.org/200/svg"
+                xmlns="http://www.w3/200/svg"
                 className="h-6 w-6"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -200,7 +240,7 @@ const Notification: React.FC<NotificationProps> = ({ toggleModal }) => {
                   notification.isRead
                     ? "bg-neutral-800"
                     : "bg-neutral-800/50 border border-neutral-700"
-                }`}
+                } ${isResultNotification(notification) ? getPositionGradient(getPosition(notification)) : ""}`}
               >
                 <h3 className="font-semibold mb-1">{notification.title}</h3>
                 <p className="text-sm text-neutral-300 mb-2">

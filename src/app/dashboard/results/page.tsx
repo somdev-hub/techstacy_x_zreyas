@@ -7,12 +7,17 @@ type EventResult = {
   eventName: Events;
   eventType: EventType;
   name: string;
+  participationType: string;
   participants: {
     user: {
       name: string;
       sic: string;
     };
     position: number;
+    teamMembers?: {
+      name: string;
+      sic: string;
+    }[];
   }[];
 };
 
@@ -60,17 +65,35 @@ export default function Results() {
                 {event.participants.length > 0 ? (
                   <div className="space-y-2">
                     {event.participants.map((participant, index) => (
-                      <div key={index} className="flex justify-between items-center">
-                        <div className="flex-1">
-                          <p className="text-sm">{participant.user.name}</p>
-                          <p className="text-xs text-neutral-400">{participant.user.sic}</p>
+                      <div key={index} className="flex flex-col bg-neutral-800 rounded-lg p-3 border border-neutral-700">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold">{participant.user.name}</p>
+                              <div className="bg-blue-600 px-2 py-0.5 rounded text-xs">
+                                {participant.position}
+                                {participant.position === 1 ? "st" : 
+                                  participant.position === 2 ? "nd" : 
+                                  participant.position === 3 ? "rd" : "th"}
+                              </div>
+                            </div>
+                            <p className="text-xs text-neutral-400">{participant.user.sic}</p>
+                          </div>
                         </div>
-                        <div className="bg-blue-600 px-2 py-1 rounded text-sm">
-                          {participant.position}
-                          {participant.position === 1 ? "st" : 
-                            participant.position === 2 ? "nd" : 
-                            participant.position === 3 ? "rd" : "th"}
-                        </div>
+                        
+                        {participant.teamMembers && participant.teamMembers.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-neutral-700">
+                            <p className="text-xs font-semibold text-neutral-300 mb-2">Team Members:</p>
+                            <div className="space-y-2">
+                              {participant.teamMembers.map((member, memberIndex) => (
+                                <div key={memberIndex} className="flex flex-col pl-3">
+                                  <p className="text-sm">{member.name}</p>
+                                  <p className="text-xs text-neutral-400">{member.sic}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

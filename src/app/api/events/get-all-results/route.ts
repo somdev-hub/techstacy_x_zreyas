@@ -17,6 +17,7 @@ export async function GET() {
         name: true,
         eventName: true,
         eventType: true,
+        participationType: true,
         eventResults: {
           orderBy: {
             position: 'asc'
@@ -28,8 +29,10 @@ export async function GET() {
           },
           select: {
             position: true,
+            userId: true,
             user: {
               select: {
+                id: true,
                 name: true,
                 sic: true
               }
@@ -39,16 +42,51 @@ export async function GET() {
       }
     });
 
-    // Transform the data to match our frontend expectations
-    const formattedEvents = events.map(event => ({
-      id: event.id,
-      name: event.name,
-      eventName: event.eventName,
-      eventType: event.eventType,
-      participants: event.eventResults.map(result => ({
-        user: result.user,
-        position: result.position
-      }))
+    // Process the events to include team members for team events
+    const formattedEvents = await Promise.all(events.map(async event => {
+      // Get participants with their results and team information
+      const eventParticipants = await Promise.all(event.eventResults.map(async result => {
+        // Get the team information for this participant
+        const participant = await prisma.eventParticipant.findFirst({
+          where: {
+            eventId: event.id,
+            userId: result.userId,
+          },
+          include: {
+            otherParticipants: {
+              include: {
+                user: {
+                  select: {
+                    name: true,
+                    sic: true
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        // Format the result with team information
+        const formattedResult = {
+          user: result.user,
+          position: result.position,
+          teamMembers: participant?.otherParticipants.map(member => ({
+            name: member.user.name,
+            sic: member.user.sic
+          })) || []
+        };
+
+        return formattedResult;
+      }));
+
+      return {
+        id: event.id,
+        name: event.name,
+        eventName: event.eventName,
+        eventType: event.eventType,
+        participationType: event.participationType,
+        participants: eventParticipants
+      };
     }));
 
     return NextResponse.json(formattedEvents);
